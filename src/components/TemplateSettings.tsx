@@ -1,0 +1,255 @@
+import React, { useState, useEffect } from 'react';
+import './TemplateSettings.css';
+
+interface TemplateSettingsData {
+    businessName: string;
+    tagline: string;
+    logoUrl: string;
+    headerGradientStart: string;
+    headerGradientEnd: string;
+    primaryColor: string;
+    footerMessage: string;
+    contactPhone: string;
+    contactEmail: string;
+    contactWebsite: string;
+}
+
+const defaultSettings: TemplateSettingsData = {
+    businessName: 'VELOCITY VVIP',
+    tagline: 'Premium Limousine Services',
+    logoUrl: '',
+    headerGradientStart: '#B453E9',
+    headerGradientEnd: '#00D4FF',
+    primaryColor: '#B453E9',
+    footerMessage: 'Your chauffeur will arrive 15 minutes prior to your scheduled pickup time. If you have any questions, please contact us at support@velocityvvip.com',
+    contactPhone: '(800) VVIP-LIMO',
+    contactEmail: 'reservations@velocityvvip.com',
+    contactWebsite: 'www.velocityvvip.com'
+};
+
+const TemplateSettings: React.FC = () => {
+    const [settings, setSettings] = useState<TemplateSettingsData>(defaultSettings);
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('confirmationTemplateSettings');
+        if (stored) {
+            setSettings(JSON.parse(stored));
+        }
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setSettings(prev => ({ ...prev, [name]: value }));
+        setSaved(false);
+    };
+
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSettings(prev => ({ ...prev, logoUrl: reader.result as string }));
+                setSaved(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSave = () => {
+        localStorage.setItem('confirmationTemplateSettings', JSON.stringify(settings));
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+    };
+
+    return (
+        <div className="template-settings fade-in">
+            {/* Settings Grid */}
+            <div className="settings-grid">
+                {/* Branding Section */}
+                <div className="settings-section glass-card">
+                    <h3>🏷️ Brand Identity</h3>
+                    <div className="form-group">
+                        <label className="form-label">Business Identifier</label>
+                        <input
+                            type="text"
+                            name="businessName"
+                            className="form-input"
+                            value={settings.businessName}
+                            onChange={handleChange}
+                            placeholder="e.g. Velocity VVIP"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Operational Tagline</label>
+                        <input
+                            type="text"
+                            name="tagline"
+                            className="form-input"
+                            value={settings.tagline}
+                            onChange={handleChange}
+                            placeholder="e.g. Premium Limousine Services"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Digital Asset (Logo)</label>
+                        <div className="logo-upload-area" onClick={() => document.getElementById('logo-input')?.click()}>
+                            {settings.logoUrl ? (
+                                <div className="logo-preview">
+                                    <img src={settings.logoUrl} alt="Logo Preview" />
+                                </div>
+                            ) : (
+                                <div className="logo-placeholder">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            )}
+                            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>DEPLOY OFFICIAL BRAND ASSET</p>
+                            <input
+                                id="logo-input"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLogoUpload}
+                                style={{ display: 'none' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Design Customization */}
+                <div className="settings-section glass-card">
+                    <h3>🎨 Design & Colors</h3>
+                    <div className="form-group">
+                        <label className="form-label">Chroma Gradients (Header)</label>
+                        <div className="color-picker-group">
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    name="headerGradientStart"
+                                    value={settings.headerGradientStart}
+                                    onChange={handleChange}
+                                />
+                                <span className="text-secondary" style={{ fontSize: '0.8rem' }}>START_VAL</span>
+                            </div>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    name="headerGradientEnd"
+                                    value={settings.headerGradientEnd}
+                                    onChange={handleChange}
+                                />
+                                <span className="text-secondary" style={{ fontSize: '0.8rem' }}>END_VAL</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Primary UI Accent</label>
+                        <div className="color-input-wrapper" style={{ width: 'fit-content' }}>
+                            <input
+                                type="color"
+                                name="primaryColor"
+                                value={settings.primaryColor}
+                                onChange={handleChange}
+                            />
+                            <span className="text-secondary" style={{ fontSize: '0.8rem' }}>ACCENT_HEX</span>
+                        </div>
+                    </div>
+
+                    <div className="live-preview-box">
+                        <label className="form-label" style={{ marginBottom: '1rem', display: 'block' }}>Real-time Rendering</label>
+                        <div className="preview-card-compact">
+                            <div
+                                className="preview-header-mini"
+                                style={{
+                                    background: `linear-gradient(135deg, ${settings.headerGradientStart}, ${settings.headerGradientEnd})`
+                                }}
+                            >
+                                {settings.logoUrl ? (
+                                    <img src={settings.logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                                ) : (
+                                    <div style={{ background: 'rgba(255,255,255,0.2)', width: 40, height: 40, borderRadius: 8 }} />
+                                )}
+                                <div>
+                                    <div style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '0.05em' }}>{settings.businessName}</div>
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.9, fontWeight: 500 }}>{settings.tagline}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Contact & Footer */}
+                <div className="settings-section glass-card">
+                    <h3>📞 Contact & Footer</h3>
+                    <div className="form-group">
+                        <label className="form-label">Contact Secure Line</label>
+                        <input
+                            type="text"
+                            name="contactPhone"
+                            className="form-input"
+                            value={settings.contactPhone}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Liaison Email</label>
+                        <input
+                            type="email"
+                            name="contactEmail"
+                            className="form-input"
+                            value={settings.contactEmail}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Global Web Addr</label>
+                        <input
+                            type="text"
+                            name="contactWebsite"
+                            className="form-input"
+                            value={settings.contactWebsite}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Legal Footer / Policy</label>
+                        <textarea
+                            name="footerMessage"
+                            className="form-input"
+                            value={settings.footerMessage}
+                            onChange={handleChange}
+                            rows={3}
+                            style={{ resize: 'none' }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="save-bar">
+                <div className="save-info">
+                    {saved ? (
+                        <span style={{ color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            PROTOCOLS SYNCED
+                        </span>
+                    ) : (
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>PENDING MODIFICATIONS DETECTED</span>
+                    )}
+                </div>
+                <div className="settings-actions" style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn btn-outline" onClick={() => setSettings(defaultSettings)}>
+                        RESET_PROTOCOLS
+                    </button>
+                    <button className="btn btn-primary" style={{ padding: '0.75rem 2rem' }} onClick={handleSave}>
+                        AUTHORIZE CHANGES
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default TemplateSettings;

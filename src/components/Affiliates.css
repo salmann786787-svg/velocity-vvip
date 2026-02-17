@@ -1,0 +1,134 @@
+.affiliates {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.affiliates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.affiliates-header-content h2 {
+    font-size: min(2.5rem, 8vw);
+}
+
+.affiliates-list {
+    padding: 0;
+    overflow-x: auto;
+    background: linear-gradient(135deg, hsla(230, 20%, 10%, 0.7) 0%, hsla(230, 20%, 5%, 0.8) 100%);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
+}
+
+.affiliates-list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.affiliates-list::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 3px;
+}
+
+.affiliates-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.affiliates-table th {
+    text-align: left;
+    padding: 1.5rem 2rem;
+    background: hsla(0, 0%, 100%, 0.03);
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    border-bottom: 1px solid var(--glass-border);
+    white-space: nowrap;
+}
+
+.affiliates-table td {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid hsla(0, 0%, 100%, 0.03);
+    color: var(--color-text-secondary);
+    vertical-align: middle;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.affiliates-table tr:last-child td {
+    border-bottom: none;
+}
+
+.affiliates-table tr:hover td {
+    background: hsla(0, 0%, 100%, 0.01);
+}
+
+.company-cell {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.company-avatar {
+    width: 48px;
+    height: 48px;
+    background: hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    box-shadow: 0 0 15px hsla(280, 100%, 70%, 0.1);
+}
+
+.company-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+
+.commission-rate {
+    font-family: var(--font-mono);
+    color: var(--color-success);
+    font-weight: 800;
+    padding: 0.4rem 0.8rem;
+    background: hsla(150, 100%, 55%, 0.1);
+    border-radius: 6px;
+    border: 1px solid hsla(150, 100%, 55%, 0.2);
+}
+
+.affiliate-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+    .affiliates {
+        gap: 2rem;
+    }
+
+    .affiliates-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .affiliates-table th,
+    .affiliates-table td {
+        padding: 1.25rem;
+    }
+}

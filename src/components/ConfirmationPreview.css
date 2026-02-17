@@ -1,0 +1,364 @@
+.confirmation-modal {
+    width: 100%;
+    max-width: 900px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    overflow: hidden;
+}
+
+.preview-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 3rem;
+    background: hsla(230, 20%, 3%, 0.8);
+    position: relative;
+}
+
+.preview-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.preview-container::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 3px;
+}
+
+/* Email Preview Styles */
+.email-preview {
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+    color: #1a1a1a;
+}
+
+.email-header {
+    padding: 4rem 3rem;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.email-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+}
+
+.email-logo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.email-header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-family: 'Outfit', sans-serif;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tagline {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.confirmation-badge {
+    text-align: center;
+    padding: 4rem 3rem;
+    background: #fdfdfd;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.check-icon {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.confirmation-badge h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #050505;
+    letter-spacing: -0.02em;
+}
+
+.confirmation-badge p {
+    margin: 0;
+    color: #555;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.email-section {
+    padding: 3rem 4rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.email-section:last-of-type {
+    border-bottom: none;
+}
+
+.email-section h3 {
+    margin: 0 0 2rem 0;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2.5rem;
+}
+
+.detail-item .label {
+    font-size: 0.7rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.detail-item .value {
+    font-size: 1.25rem;
+    color: #050505;
+    font-weight: 800;
+}
+
+.detail-item .value.price {
+    font-size: 1.75rem;
+    color: #000;
+    border-left: 4px solid var(--color-primary);
+    padding-left: 1rem;
+}
+
+.trip-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.highlight-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 2rem;
+    background: #fcfcfc;
+    border-radius: 16px;
+    border: 1px solid #f0f0f0;
+    transition: transform 0.3s ease;
+}
+
+.highlight-cardSvg {
+    color: var(--color-primary);
+}
+
+.highlight-card .label {
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 900;
+}
+
+.highlight-card .value {
+    font-size: 1.15rem;
+    color: #050505;
+    font-weight: 800;
+}
+
+/* Itinerary tracked */
+.itinerary {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.itinerary-stop {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.stop-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 48px;
+}
+
+.stop-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: white;
+    z-index: 1;
+}
+
+.stop-icon.pickup {
+    background: #050505;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stop-icon.intermediate {
+    background: #eee;
+    color: #050505;
+}
+
+.stop-icon.destination {
+    background: var(--color-primary);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stop-line {
+    width: 2px;
+    flex: 1;
+    background: #f0f0f0;
+    margin: 0.5rem 0;
+}
+
+.stop-details {
+    flex: 1;
+    padding-bottom: 3.5rem;
+}
+
+.stop-label {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #aaa;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+.stop-location {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #050505;
+    letter-spacing: -0.01em;
+}
+
+.flight-info {
+    font-size: 0.9rem;
+    color: #555;
+    padding: 0.75rem 1.25rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    border: 1px solid #ececec;
+}
+
+.instructions-box {
+    padding: 3rem;
+    background: #fafafa;
+    border: 1px dashed #dedede;
+    border-radius: 20px;
+    color: #333;
+    line-height: 1.8;
+    font-size: 1.05rem;
+    white-space: pre-wrap;
+}
+
+.email-footer {
+    background: #050505;
+    padding: 5rem 4rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.footer-contact {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    margin: 3rem 0;
+}
+
+.footer-contact p {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+}
+
+.preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    padding: 2rem 3rem;
+    background: hsla(230, 20%, 5%, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border);
+}
+
+@media (max-width: 768px) {
+    .trip-highlights {
+        grid-template-columns: 1fr;
+    }
+
+    .email-section {
+        padding: 3rem 2rem;
+    }
+
+    .footer-contact {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+}
+
+.uploaded-logo {
+    width: auto;
+    max-width: 300px;
+    height: 100px;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+.uploaded-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
