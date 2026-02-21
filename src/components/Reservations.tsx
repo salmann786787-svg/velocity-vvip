@@ -15,6 +15,44 @@ import {
 } from '../utils';
 import { ReservationAPI } from '../services/api';
 
+const TypewriterText = ({ text }: { text: string }) => {
+    const [displayedText, setDisplayedText] = useState('');
+    const [isTyping, setIsTyping] = useState(true);
+
+    useEffect(() => {
+        let i = 0;
+        setDisplayedText('');
+        setIsTyping(true);
+        const timer = setInterval(() => {
+            if (i < text.length) {
+                setDisplayedText(prev => prev + text.charAt(i));
+                i++;
+            } else {
+                setIsTyping(false);
+                clearInterval(timer);
+                setTimeout(() => {
+                    setDisplayedText('');
+                    setIsTyping(true);
+                    i = 0;
+                }, 5000); // Wait 5 seconds before looping
+            }
+        }, 30);
+        return () => clearInterval(timer);
+    }, [text]);
+
+    return (
+        <span style={{ 
+            borderRight: isTyping ? '0.15em solid var(--color-primary-light)' : '0.15em solid transparent',
+            animation: !isTyping ? 'blink-caret 0.75s step-end infinite' : 'none',
+            whiteSpace: 'pre-wrap',
+            lineHeight: 1.4,
+            display: 'inline-block'
+        }}>
+            {displayedText}
+        </span>
+    );
+};
+
 interface ReservationsProps {
     initialCreateMode?: boolean;
     onResetCreateMode?: () => void;
@@ -38,6 +76,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     const [isParsingAI, setIsParsingAI] = useState(false);
     const [aiKey, setAiKey] = useState(localStorage.getItem('gemini_api_key') || '');
     const [showAiPanel, setShowAiPanel] = useState(false);
+    const [aiTaskStatus, setAiTaskStatus] = useState<'idle' | 'parsing' | 'success'>('idle');
 
     // Mock customer database
     const [customers] = useState<Customer[]>([]);
@@ -248,6 +287,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         if (!aiPrompt) return;
 
         setIsParsingAI(true);
+        setAiTaskStatus('parsing');
         localStorage.setItem('gemini_api_key', aiKey);
         try {
             const parsed = await parseReservationPromptAI(aiPrompt, aiKey);
@@ -285,9 +325,13 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             }
 
             setAiPrompt('');
-            setShowAiPanel(false);
+            setAiTaskStatus('success');
+            setTimeout(() => {
+                setAiTaskStatus('idle');
+            }, 8000);
         } catch (error: any) {
             alert(error.message || 'Failed to parse AI prompt');
+            setAiTaskStatus('idle');
         } finally {
             setIsParsingAI(false);
         }
@@ -735,23 +779,30 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                                                 <div className="mascot-container">
                                                     <div className="mascot-pulse"></div>
-                                                    <div className="mascot-avatar">
-                                                        <svg className="mascot-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect x="4" y="8" width="16" height="12" rx="4" fill="hsla(280, 100%, 70%, 0.2)" stroke="white" strokeWidth="1.5" />
-                                                            <path d="M12 8V5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                                                            <circle cx="12" cy="3" r="1.5" fill="var(--color-accent-light)" />
-                                                            <path d="M2.5 12h1.5M20 12h1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                                                            <path d="M9 13a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z" fill="white" stroke="white" strokeLinecap="round" />
-                                                            <path d="M10 16c.5.5 1.5 1 2 1s1.5-.5 2-1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                                                        </svg>
+                                                    <div className="mascot-avatar" style={{ overflow: 'hidden' }}>
+                                                        <div className="mascot-t-intro">T</div>
+                                                        <div className="mascot-head-intro">
+                                                            <svg className="mascot-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <rect x="4" y="8" width="16" height="12" rx="4" fill="hsla(280, 100%, 70%, 0.2)" stroke="white" strokeWidth="1.5" />
+                                                                <path d="M12 8V5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                                <circle cx="12" cy="3" r="1.5" fill="var(--color-accent-light)" />
+                                                                <path d="M2.5 12h1.5M20 12h1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                                <path d="M9 13a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z" fill="white" stroke="white" strokeLinecap="round" />
+                                                                <path d="M10 16c.5.5 1.5 1 2 1s1.5-.5 2-1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                            </svg>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="chat-bubble">
+                                                <div className="chat-bubble" onClick={() => setShowAiPanel(true)} style={{ cursor: 'pointer' }}>
                                                     <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '0.8rem', border: 'none', padding: 0, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-                                                        TEE (AI Dispatcher)
+                                                        TEE <span style={{ opacity: 0.5, fontSize: '0.7rem' }}> (AI Dispatcher)</span>
                                                     </h4>
-                                                    <div className="typewriter-text">
-                                                        "Just paste the client's messy email below. I'll translate it!"
+                                                    <div className="typewriter-text" style={{ minHeight: '40px' }}>
+                                                        <TypewriterText text={
+                                                            aiTaskStatus === 'parsing' ? "Hold tight! I'm reading the email and building your reservation right now... Just a few seconds!" :
+                                                            aiTaskStatus === 'success' ? "All done! I've populated the fields below. Please review them, fill in any missing details, and save your new reservation!" :
+                                                            "Just paste the client's messy email below. I'll translate it into a perfectly formatted reservation for you to review and send!"
+                                                        } />
                                                     </div>
                                                 </div>
                                             </div>

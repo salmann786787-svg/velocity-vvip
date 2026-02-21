@@ -574,7 +574,14 @@ input:-webkit-autofill:active {
   padding: 0.75rem 1rem;
   margin-left: 0.75rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-  max-width: 500px;
+  max-width: 550px;
+  transition: all 0.3s ease;
+}
+
+.chat-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(180, 83, 233, 0.2);
+  border-color: hsla(280, 100%, 70%, 0.6);
 }
 
 .chat-bubble::before {
@@ -591,39 +598,54 @@ input:-webkit-autofill:active {
 }
 
 .typewriter-text {
-  overflow: hidden;
-  border-right: 0.15em solid var(--color-primary-light);
-  white-space: nowrap;
-  margin: 0;
-  animation:
-    typing 2s steps(60, end),
-    blink-caret 0.75s step-end infinite;
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   font-style: italic;
   font-weight: 400;
-  display: inline-block;
-  max-width: 100%;
-}
-
-@keyframes typing {
-  from {
-    width: 0
-  }
-
-  to {
-    width: 100%
-  }
+  display: block;
 }
 
 @keyframes blink-caret {
-
   from,
   to {
-    border-color: transparent
+    border-color: transparent;
   }
-
   50% {
     border-color: var(--color-primary-light);
   }
+}
+
+.mascot-t-intro {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  animation: tee-intro 2.5s ease-in-out forwards;
+  z-index: 3;
+}
+
+.mascot-head-intro {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  animation: head-rise 2.5s ease-out forwards;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+@keyframes tee-intro {
+  0% { transform: scale(0); opacity: 0; }
+  10%, 60% { transform: scale(1); opacity: 1; }
+  80%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes head-rise {
+  0%, 40% { transform: translateY(30px); opacity: 0; }
+  60%, 100% { transform: translateY(0); opacity: 1; }
 }
