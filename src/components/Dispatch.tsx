@@ -280,120 +280,122 @@ Driver: ${reservation.driver || 'Unassigned'}
 
             {/* Controls */}
             <div className="dispatch-controls glass-panel">
-                <div className="control-group left" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <select
-                        className="form-input"
-                        style={{ width: 'auto', padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}
-                        value={dateMode}
-                        onChange={(e) => setDateMode(e.target.value as any)}
-                    >
-                        <option value="day">Single Day</option>
-                        <option value="range">Date Range</option>
-                    </select>
-                    {/* Quick presets */}
-                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('today')}>Today</button>
-                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('week')}>This Week</button>
-                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('month')}>This Month</button>
-                </div>
+                {/* Row 1: mode selector | date pickers | search */}
+                <div className="dispatch-controls-row">
+                    <div className="control-group left">
+                        <select
+                            className="form-input"
+                            style={{ width: 'auto', padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}
+                            value={dateMode}
+                            onChange={(e) => setDateMode(e.target.value as any)}
+                        >
+                            <option value="day">Single Day</option>
+                            <option value="range">Date Range</option>
+                        </select>
+                    </div>
 
-                <div className="control-group center" style={{ gap: '0.75rem' }}>
-                    {dateMode === 'day' && (
-                        <button className="icon-btn" onClick={() => changeDate(-1)}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                    )}
+                    <div className="control-group center" style={{ gap: '0.75rem' }}>
+                        {dateMode === 'day' && (
+                            <button className="icon-btn" onClick={() => changeDate(-1)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                        )}
 
-                    {/* Start / single date picker */}
-                    <div
-                        className="date-display"
-                        onClick={() => {
-                            if (dateInputRef.current) {
-                                try { dateInputRef.current.showPicker(); } catch { dateInputRef.current.click(); }
-                            }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <span className="icon-calendar">📅</span>
-                        {dateMode === 'range' ? 'Start: ' : ''}
-                        {formatDate(dateMode === 'range' ? pendingStart : currentDate)}
-                        <input
-                            ref={dateInputRef}
-                            type="date"
-                            value={`${(dateMode === 'range' ? pendingStart : currentDate).getFullYear()}-${String((dateMode === 'range' ? pendingStart : currentDate).getMonth() + 1).padStart(2, '0')}-${String((dateMode === 'range' ? pendingStart : currentDate).getDate()).padStart(2, '0')}`}
-                            onChange={(e) => {
-                                if (e.target.value) {
-                                    const [y, m, d] = e.target.value.split('-').map(Number);
-                                    const newDate = new Date(y, m - 1, d, 12, 0, 0);
-                                    if (dateMode === 'range') {
-                                        setPendingStart(newDate);
-                                    } else {
-                                        setCurrentDate(newDate); // Single day: apply immediately
-                                    }
+                        {/* Start / single date picker */}
+                        <div
+                            className="date-display"
+                            onClick={() => {
+                                if (dateInputRef.current) {
+                                    try { dateInputRef.current.showPicker(); } catch { dateInputRef.current.click(); }
                                 }
                             }}
-                            style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
-                        />
-                    </div>
-
-                    {/* End date picker (range mode only) */}
-                    {dateMode === 'range' && (
-                        <>
-                            <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>to</span>
-                            <div
-                                className="date-display"
-                                onClick={() => {
-                                    if (endDateInputRef.current) {
-                                        try { endDateInputRef.current.showPicker(); } catch { endDateInputRef.current.click(); }
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <span className="icon-calendar">📅</span>
+                            {dateMode === 'range' ? 'Start: ' : ''}
+                            {formatDate(dateMode === 'range' ? pendingStart : currentDate)}
+                            <input
+                                ref={dateInputRef}
+                                type="date"
+                                value={`${(dateMode === 'range' ? pendingStart : currentDate).getFullYear()}-${String((dateMode === 'range' ? pendingStart : currentDate).getMonth() + 1).padStart(2, '0')}-${String((dateMode === 'range' ? pendingStart : currentDate).getDate()).padStart(2, '0')}`}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        const [y, m, d] = e.target.value.split('-').map(Number);
+                                        const newDate = new Date(y, m - 1, d, 12, 0, 0);
+                                        if (dateMode === 'range') {
+                                            setPendingStart(newDate);
+                                        } else {
+                                            setCurrentDate(newDate);
+                                        }
                                     }
                                 }}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <span className="icon-calendar">📅</span>
-                                End: {formatDate(pendingEnd)}
-                                <input
-                                    ref={endDateInputRef}
-                                    type="date"
-                                    value={`${pendingEnd.getFullYear()}-${String(pendingEnd.getMonth() + 1).padStart(2, '0')}-${String(pendingEnd.getDate()).padStart(2, '0')}`}
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            const [y, m, d] = e.target.value.split('-').map(Number);
-                                            setPendingEnd(new Date(y, m - 1, d, 12, 0, 0));
+                                style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
+                            />
+                        </div>
+
+                        {/* End date + Apply (range mode only) */}
+                        {dateMode === 'range' && (
+                            <>
+                                <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>to</span>
+                                <div
+                                    className="date-display"
+                                    onClick={() => {
+                                        if (endDateInputRef.current) {
+                                            try { endDateInputRef.current.showPicker(); } catch { endDateInputRef.current.click(); }
                                         }
                                     }}
-                                    style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
-                                />
-                            </div>
-                            {/* Apply button — only commits range to filter */}
-                            <button
-                                className="btn-go"
-                                onClick={applyRange}
-                                style={{ padding: '0.4rem 1rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem' }}
-                            >
-                                Apply
-                            </button>
-                        </>
-                    )}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <span className="icon-calendar">📅</span>
+                                    End: {formatDate(pendingEnd)}
+                                    <input
+                                        ref={endDateInputRef}
+                                        type="date"
+                                        value={`${pendingEnd.getFullYear()}-${String(pendingEnd.getMonth() + 1).padStart(2, '0')}-${String(pendingEnd.getDate()).padStart(2, '0')}`}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                                setPendingEnd(new Date(y, m - 1, d, 12, 0, 0));
+                                            }
+                                        }}
+                                        style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
+                                    />
+                                </div>
+                                <button className="btn-go" onClick={applyRange} style={{ padding: '0.35rem 1rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem' }}>
+                                    Apply
+                                </button>
+                            </>
+                        )}
 
-                    {dateMode === 'day' && (
-                        <button className="icon-btn" onClick={() => changeDate(1)}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                        </button>
-                    )}
+                        {dateMode === 'day' && (
+                            <button className="icon-btn" onClick={() => changeDate(1)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="control-group right">
+                        <div className="quick-access">
+                            <label className="checkbox-label">
+                                <input type="checkbox" defaultChecked /> New/Live
+                            </label>
+                            <label className="checkbox-label">
+                                <input type="checkbox" defaultChecked /> Farm-Out
+                            </label>
+                        </div>
+                        <div className="search-bar">
+                            <input type="text" placeholder="Quick Search..." />
+                            <button className="btn-go">GO</button>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="control-group right">
-                    <div className="quick-access">
-                        <label className="checkbox-label">
-                            <input type="checkbox" defaultChecked /> New/Live
-                        </label>
-                        <label className="checkbox-label">
-                            <input type="checkbox" defaultChecked /> Farm-Out
-                        </label>
-                    </div>
-                    <div className="search-bar">
-                        <input type="text" placeholder="Quick Search..." />
-                        <button className="btn-go">GO</button>
-                    </div>
+                {/* Row 2: quick preset chips */}
+                <div className="dispatch-presets-row">
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginRight: '0.25rem', fontWeight: 500 }}>Jump to:</span>
+                    <button className="preset-btn" onClick={() => applyPreset('today')}>Today</button>
+                    <button className="preset-btn" onClick={() => applyPreset('week')}>This Week</button>
+                    <button className="preset-btn" onClick={() => applyPreset('month')}>This Month</button>
                 </div>
             </div>
 
