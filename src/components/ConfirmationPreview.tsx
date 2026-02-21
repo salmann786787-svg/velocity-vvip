@@ -144,6 +144,18 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                                     <span className="text-secondary">Passenger:</span>
                                     <span className="font-bold">{reservation.customerName}</span>
                                 </div>
+                                {reservation.bookedByName && (
+                                    <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span className="text-secondary">Booked By:</span>
+                                        <span className="font-bold">{reservation.bookedByName}</span>
+                                    </div>
+                                )}
+                                {reservation.specialInstructions && (
+                                    <div className="summary-row" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                        <span className="text-secondary" style={{ fontSize: '0.75rem' }}>SPECIAL INSTRUCTIONS</span>
+                                        <span className="font-bold" style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>{reservation.specialInstructions}</span>
+                                    </div>
+                                )}
                                 <div className="summary-divider" style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
                                 <div className="summary-row">
                                     <span className="text-secondary" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>PICKUP</span>

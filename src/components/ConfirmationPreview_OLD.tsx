@@ -194,6 +194,27 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                             </div>
                         </div>
 
+                        {/* Booking Contact - Conditional Render */}
+                        {reservation.bookedByName && (
+                            <div className="email-section" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '-0.5rem' }}>
+                                <h3>📋 Booking Contact</h3>
+                                <div className="detail-grid">
+                                    <div className="detail-item">
+                                        <span className="label">Name</span>
+                                        <span className="value">{reservation.bookedByName}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span className="label">Email</span>
+                                        <span className="value">{reservation.bookedByEmail || 'N/A'}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span className="label">Phone</span>
+                                        <span className="value">{reservation.bookedByPhone || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Trip Details */}
                         <div className="email-section" style={{ background: '#fafafa' }}>
                             <h3>🚗 Trip Details</h3>
