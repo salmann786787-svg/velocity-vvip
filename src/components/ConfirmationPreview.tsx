@@ -204,7 +204,7 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                         </table>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} style={{ padding: '0 0.5rem', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
+                    <form onSubmit={handleSubmit} style={{ padding: '0 0.5rem', display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
                         {/* Left Column: Summary */}
                         <div className="confirmation-summary section-panel modal-embedded-preview" style={{ height: '70vh', overflowY: 'auto', padding: '0', background: '#e0e0e0', borderRadius: '12px' }}>
                             <div className="email-preview" style={{ borderRadius: '0', minHeight: '100%', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
