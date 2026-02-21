@@ -31,7 +31,7 @@ function Dispatch() {
     // Staged state for range mode — only applied when user clicks Apply
     const [pendingStart, setPendingStart] = useState<Date>(new Date());
     const [pendingEnd, setPendingEnd] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 7)));
-    const [isLoading, setIsLoading] = useState(true);
+    const [_isLoading, setIsLoading] = useState(true);
 
     // Live Data from API
     const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -81,7 +81,6 @@ function Dispatch() {
             })
             .map(r => {
                 // Map API Reservation to DispatchRow
-                let driver = 'Unassigned';
                 // Try to determine service type based on stops
                 let svcType: DispatchRow['serviceType'] = 'Point-to-Point';
                 if (r.stops.length > 0) {

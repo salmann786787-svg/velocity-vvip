@@ -130,13 +130,6 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
         return `$${(reservation.hours * 150).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
-    const getPickupLocation = () => {
-        return reservation.stops && reservation.stops.length > 0 ? reservation.stops[0].location : '';
-    };
-
-    const getDropoffLocation = () => {
-        return reservation.stops && reservation.stops.length > 1 ? reservation.stops[reservation.stops.length - 1].location : 'As Directed';
-    };
 
     const getConfirmationNumber = () => {
         return reservation.reservationData?.confirmationNumber || 'NEW';
