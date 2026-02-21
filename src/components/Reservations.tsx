@@ -36,13 +36,6 @@ const TypewriterText = ({ text }: { text: string }) => {
                 typingTimeout = setTimeout(typeChar, 30);
             } else {
                 setIsTyping(false);
-                loopTimeout = setTimeout(() => {
-                    if (isCancelled) return;
-                    setDisplayedText('');
-                    setIsTyping(true);
-                    i = 0;
-                    typingTimeout = setTimeout(typeChar, 500);
-                }, 5000);
             }
         };
 
@@ -797,25 +790,17 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                     <div className="mascot-avatar" style={{ overflow: 'hidden' }}>
                                                         <div className="mascot-t-intro">T</div>
                                                         <div className="mascot-head-intro">
-                                                            <svg className="mascot-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M20 3 L37 12 L37 28 L20 37 L3 28 L3 12 Z" fill="rgba(15,15,20,0.95)" stroke="url(#hexGrad)" strokeWidth="1.5" />
-                                                                <defs>
-                                                                    <linearGradient id="hexGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                                                                        <stop stopColor="var(--color-primary)" />
-                                                                        <stop offset="1" stopColor="var(--color-accent)" />
-                                                                    </linearGradient>
-                                                                </defs>
-                                                                <path d="M14 16 H26 M20 16 V28" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                                                                <line x1="8" y1="20" x2="32" y2="20" stroke="var(--color-primary-light)" strokeWidth="1" opacity="0.6">
-                                                                    <animate attributeName="y1" values="8;32;8" dur="2s" repeatCount="indefinite" />
-                                                                    <animate attributeName="y2" values="8;32;8" dur="2s" repeatCount="indefinite" />
-                                                                </line>
-                                                                <circle cx="28" cy="10" r="1.5" fill="var(--color-success)">
-                                                                    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite" />
+                                                            <svg className="mascot-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scale(1.2)' }}>
+                                                                <rect x="6" y="10" width="28" height="22" rx="6" fill="hsla(230, 20%, 15%, 0.9)" stroke="var(--color-primary-light)" strokeWidth="2" />
+                                                                <circle cx="20" cy="5" r="3" fill="var(--color-accent)" />
+                                                                <line x1="20" y1="8" x2="20" y2="10" stroke="var(--color-primary-light)" strokeWidth="2" />
+                                                                <circle cx="14" cy="18" r="3" fill="var(--color-primary-light)">
+                                                                    <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
                                                                 </circle>
-                                                                <circle cx="12" cy="10" r="1.5" fill="var(--color-primary-light)">
-                                                                    <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" />
+                                                                <circle cx="26" cy="18" r="3" fill="var(--color-primary-light)">
+                                                                    <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
                                                                 </circle>
+                                                                <path d="M14 26 Q20 30 26 26" fill="none" stroke="var(--color-accent-light)" strokeWidth="2" strokeLinecap="round" />
                                                             </svg>
                                                         </div>
                                                     </div>
