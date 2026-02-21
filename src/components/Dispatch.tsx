@@ -19,7 +19,6 @@ interface DispatchRow {
     vehicleType: string;
     carId?: string;
     pax: number;
-    pax: number;
     lug: number;
 }
 
@@ -87,7 +86,10 @@ function Dispatch() {
 
                 return {
                     id: r.id,
-                    passenger: r.customer,
+                    // customer may be a full object from the backend's `include: { customer: true }`
+                    passenger: typeof (r as any).customer === 'object' && (r as any).customer !== null
+                        ? ((r as any).customer.name || '')
+                        : (r.customer as any as string || ''),
                     serviceType: svcType,
                     confNumber: r.confirmationNumber,
                     status: r.status === 'confirmed' ? 'Dispatched' : r.status === 'completed' ? 'Done' : r.status === 'cancelled' ? 'Cancelled' : 'Unassigned',
