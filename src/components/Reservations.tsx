@@ -732,11 +732,21 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                 {!isEditMode && (
                                     <div className="section-panel" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, hsla(280, 100%, 70%, 0.1) 0%, hsla(230, 20%, 10%, 0.8) 100%)', borderColor: 'hsla(280, 100%, 70%, 0.3)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAiPanel ? '1.5rem' : '0' }}>
-                                            <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)' }}>
-                                                ✨ AI Text Auto-Parser
-                                            </h4>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', boxShadow: '0 0 15px rgba(180, 83, 233, 0.4)' }}>
+                                                    🤖
+                                                </div>
+                                                <div>
+                                                    <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '1.1rem', border: 'none', padding: 0 }}>
+                                                        Meet Tee, your AI Dispatcher
+                                                    </h4>
+                                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
+                                                        "Just paste the client's messy email below. I'll translate it into a perfect reservation, you approve it, and we'll send it away!"
+                                                    </p>
+                                                </div>
+                                            </div>
                                             <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowAiPanel(!showAiPanel)}>
-                                                {showAiPanel ? 'Close AI' : 'Autofill with Text'}
+                                                {showAiPanel ? 'Close AI' : 'Ask Tee'}
                                             </button>
                                         </div>
                                         {showAiPanel && (
