@@ -812,7 +812,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                         <TypewriterText text={
                                                             aiTaskStatus === 'parsing' ? "Hold tight! I'm reading the email and building your reservation..." :
                                                                 aiTaskStatus === 'success' ? "All done! I've populated the fields. Please recheck the data and click 'Review & Create' to send it. (I can't start a new one until this is sent!)" :
-                                                                    "Just paste the client's messy email below. I'll translate it!"
+                                                                    "Just paste the client's messy email below. I'll automatically extract the names, dates, times, and addresses, and instantly populate all the fields on this form for you!"
                                                         } />
                                                     </div>
                                                 </div>
