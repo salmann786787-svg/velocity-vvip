@@ -3,7 +3,29 @@ import prisma from '../lib/prisma';
 
 export const createReservation = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { customerId, pickupDate, pickupTime, stops, vehicle, passengers, hours, total, rateBreakdown } = req.body;
+        const { customerId, customer, email, phone, company, pickupDate, pickupTime, stops, vehicle, passengers, hours, total, rateBreakdown, status, specialInstructions, policyType } = req.body;
+
+        let finalCustomerId = customerId;
+
+        if (!finalCustomerId && email) {
+            let existingCustomer = await prisma.customer.findUnique({ where: { email: email } });
+            if (!existingCustomer) {
+                existingCustomer = await prisma.customer.create({
+                    data: {
+                        name: customer || 'Unknown',
+                        email: email,
+                        phone: phone || '0000000000',
+                        company: company || null
+                    }
+                });
+            }
+            finalCustomerId = existingCustomer.id;
+        }
+
+        if (!finalCustomerId) {
+            res.status(400).json({ error: 'Customer ID or full customer details (email) are required' });
+            return;
+        }
 
         // Generate confirmation number
         const confirmationNumber = `RES-${Date.now().toString(36).toUpperCase()}`;
@@ -11,7 +33,7 @@ export const createReservation = async (req: Request, res: Response): Promise<vo
         const reservation = await prisma.reservation.create({
             data: {
                 confirmationNumber,
-                customerId,
+                customerId: finalCustomerId,
                 pickupDate: new Date(pickupDate),
                 pickupTime,
                 stops,
@@ -20,7 +42,9 @@ export const createReservation = async (req: Request, res: Response): Promise<vo
                 hours,
                 total,
                 rateBreakdown,
-                status: 'PENDING'
+                status: status ? status.toUpperCase() : 'PENDING',
+                specialInstructions: specialInstructions || null,
+                policyType: policyType ? policyType.toUpperCase() : 'CUSTOMER'
             },
             include: { customer: true }
         });
