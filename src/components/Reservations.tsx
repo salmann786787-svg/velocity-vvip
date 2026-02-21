@@ -334,9 +334,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
             setAiPrompt('');
             setAiTaskStatus('success');
-            setTimeout(() => {
-                setAiTaskStatus('idle');
-            }, 8000);
+            setShowAiPanel(false); // Collapse the AI input panel to free up real estate
         } catch (error: any) {
             alert(error.message || 'Failed to parse AI prompt');
             setAiTaskStatus('idle');
@@ -466,6 +464,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         setRateBreakdown(null);
         setValidationErrors([]);
         setInitialFormState(null);
+        setAiTaskStatus('idle');
         clearDraftFromLocalStorage();
     };
 
@@ -805,15 +804,15 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="chat-bubble" onClick={() => setShowAiPanel(true)} style={{ cursor: 'pointer' }}>
+                                                <div className={`chat-bubble ${aiTaskStatus === 'success' ? 'status-success' : aiTaskStatus === 'parsing' ? 'status-parsing' : ''}`} onClick={() => setShowAiPanel(true)} style={{ cursor: 'pointer' }}>
                                                     <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '0.8rem', border: 'none', padding: 0, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
                                                         TEE <span style={{ opacity: 0.5, fontSize: '0.7rem' }}> (AI Dispatcher)</span>
                                                     </h4>
                                                     <div className="typewriter-text" style={{ minHeight: '40px' }}>
                                                         <TypewriterText text={
-                                                            aiTaskStatus === 'parsing' ? "Hold tight! I'm reading the email and building your reservation right now... Just a few seconds!" :
-                                                                aiTaskStatus === 'success' ? "All done! I've populated the fields below. Please review them, fill in any missing details, and save your new reservation!" :
-                                                                    "Just paste the client's messy email below. I'll translate it into a perfectly formatted reservation for you to review and send!"
+                                                            aiTaskStatus === 'parsing' ? "Hold tight! I'm reading the email and building your reservation..." :
+                                                                aiTaskStatus === 'success' ? "All done! I've populated the fields. Please recheck the data and click 'Review & Create' to send it. (I can't start a new one until this is sent!)" :
+                                                                    "Just paste the client's messy email below. I'll translate it!"
                                                         } />
                                                     </div>
                                                 </div>
