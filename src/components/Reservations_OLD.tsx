@@ -2,17 +2,50 @@ import { useState, useEffect, useCallback } from 'react';
 import './Reservations.css';
 import ConfirmationPreview from './ConfirmationPreview';
 import RateTable from './RateTable';
-import type { RateBreakdown, Customer, Stop, Reservation } from '../types';
-import {
-    validateReservationForm,
-    generateUniqueConfirmationNumber,
-    saveDraftToLocalStorage,
-    loadDraftFromLocalStorage,
-    clearDraftFromLocalStorage,
-    hasUnsavedChanges,
-    formatPhoneNumber
-} from '../utils';
-import { ReservationAPI } from '../services/api';
+import type { RateBreakdown } from '../types';
+
+interface Customer {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    company?: string;
+}
+
+interface Stop {
+    id: string;
+    location: string;
+    isAirport: boolean;
+    airline?: string;
+    flightNumber?: string;
+    terminal?: string;
+}
+
+interface Reservation {
+    id: number;
+    confirmationNumber: string;
+    customer: string;
+    customerId?: number;
+    email: string;
+    phone: string;
+    pickupDate: string;
+    pickupTime: string;
+    stops: Stop[];
+    vehicle: string;
+    passengers: number;
+    hours: number;
+    total: number;
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    specialInstructions?: string;
+    bookedByName?: string;
+    bookedByEmail?: string;
+    bookedByPhone?: string;
+    tripNotes?: string;
+    internalNotes?: string;
+    addToConfirmation?: boolean;
+    rateBreakdown?: RateBreakdown;
+    policyType?: 'customer' | 'driver' | 'affiliate' | 'none';
+}
 
 interface ReservationsProps {
     initialCreateMode?: boolean;
@@ -28,23 +61,45 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState<number | null>(null);
-    const [validationErrors, setValidationErrors] = useState<string[]>([]);
-    const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
-    const [initialFormState, setInitialFormState] = useState<any>(null);
+
+    // Effect to handle initial create mode from creating via Dispatch/Header
+    useEffect(() => {
+        if (initialCreateMode) {
+            setShowModal(true);
+            setModalState('default');
+            resetForm(); // Ensure clean form
+
+            // Suggest creating new by default or keep selector?
+            // Let's reset to defaults
+            setCustomerMode('select');
+
+            // Reset the prop in parent so it doesn't reopen if we navigate away and back
+            if (onResetCreateMode) {
+                onResetCreateMode();
+            }
+        }
+    }, [initialCreateMode, onResetCreateMode]);
 
     // Mock customer database
-    const [customers] = useState<Customer[]>([]);
+    const [customers] = useState<Customer[]>([
+        { id: 1, name: 'John Smith', email: 'john@example.com', phone: '(555) 123-4567', company: 'Tech Corp' },
+        { id: 2, name: 'Sarah Johnson', email: 'sarah@example.com', phone: '(555) 234-5678', company: 'Creative Agency' },
+        { id: 3, name: 'Michael Brown', email: 'michael@example.com', phone: '(555) 345-6789', company: 'Finance Group' }
+    ]);
 
     const [formData, setFormData] = useState({
+        // New customer fields
         customerName: '',
         customerEmail: '',
         customerPhone: '',
         customerCompany: '',
+        // Trip details
         pickupDate: '',
         pickupTime: '',
         vehicle: 'Mercedes S-Class',
         passengers: 1,
         hours: 3,
+        // Notes and booked by
         specialInstructions: '',
         bookedByName: '',
         bookedByEmail: '',
@@ -63,74 +118,51 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         { id: '2', location: '', isAirport: false }
     ]);
 
-    // Load reservations from API on mount
-    const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const loadReservations = async () => {
-        try {
-            setIsLoading(true);
-            const data = await ReservationAPI.getAll();
-            setReservations(data);
-        } catch (error) {
-            console.error('Failed to load reservations:', error);
-        } finally {
-            setIsLoading(false);
+    const [reservations, setReservations] = useState<Reservation[]>([
+        {
+            id: 1,
+            confirmationNumber: 'RES-8A92B1',
+            customer: 'John Smith',
+            customerId: 1,
+            email: 'john@example.com',
+            phone: '(555) 123-4567',
+            pickupDate: '2026-02-15',
+            pickupTime: '09:00',
+            stops: [
+                { id: '1', location: 'LAX Airport Terminal 1', isAirport: true, airline: 'American Airlines', flightNumber: 'AA1234' },
+                { id: '2', location: 'Beverly Hills Hotel', isAirport: false }
+            ],
+            vehicle: 'Mercedes S-Class',
+            passengers: 2,
+            hours: 3,
+            total: 450,
+            status: 'confirmed'
+        },
+        {
+            id: 2,
+            confirmationNumber: 'RES-C7D4E5',
+            customer: 'Sarah Johnson',
+            customerId: 2,
+            email: 'sarah@example.com',
+            phone: '(555) 234-5678',
+            pickupDate: '2026-02-16',
+            pickupTime: '14:30',
+            stops: [
+                { id: '1', location: 'Downtown LA', isAirport: false },
+                { id: '2', location: 'Santa Monica Pier', isAirport: false },
+                { id: '3', location: 'Hollywood Sign', isAirport: false }
+            ],
+            vehicle: 'Cadillac Escalade',
+            passengers: 6,
+            hours: 4,
+            total: 680,
+            status: 'pending'
         }
+    ]);
+
+    const generateConfirmationNumber = () => {
+        return 'RES-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     };
-
-    useEffect(() => {
-        loadReservations();
-    }, []);
-
-    // Removed localStorage save effect
-
-    // Effect to handle initial create mode
-    useEffect(() => {
-        if (initialCreateMode) {
-            setShowModal(true);
-            setModalState('default');
-            resetForm();
-            setCustomerMode('select');
-
-            if (onResetCreateMode) {
-                onResetCreateMode();
-            }
-        }
-    }, [initialCreateMode, onResetCreateMode]);
-
-    // Check for draft on mount
-    useEffect(() => {
-        const draft = loadDraftFromLocalStorage();
-        if (draft && !showModal) {
-            const loadDraft = window.confirm('You have an unsaved draft reservation. Would you like to continue editing it?');
-            if (loadDraft) {
-                setFormData(draft.formData || formData);
-                setStops(draft.stops || stops);
-                setCustomerMode(draft.customerMode || 'select');
-                setSelectedCustomerId(draft.selectedCustomerId || null);
-                setShowModal(true);
-            } else {
-                clearDraftFromLocalStorage();
-            }
-        }
-    }, []);
-
-    // Auto-save draft
-    useEffect(() => {
-        if (showModal && !isEditMode) {
-            const timeoutId = setTimeout(() => {
-                saveDraftToLocalStorage({
-                    formData,
-                    stops,
-                    customerMode,
-                    selectedCustomerId
-                });
-            }, 2000);
-
-            return () => clearTimeout(timeoutId);
-        }
-    }, [formData, stops, customerMode, selectedCustomerId, showModal, isEditMode]);
 
     const addStop = () => {
         const newStop: Stop = {
@@ -168,14 +200,16 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     };
 
     const handleEdit = (reservation: Reservation) => {
+        // Set edit mode
         setIsEditMode(true);
         setEditingReservationId(reservation.id);
 
+        // Populate form with reservation data
         setFormData({
             customerName: reservation.customer,
             customerEmail: reservation.email,
             customerPhone: reservation.phone,
-            customerCompany: reservation.company || '',
+            customerCompany: '',
             pickupDate: reservation.pickupDate,
             pickupTime: reservation.pickupTime,
             vehicle: reservation.vehicle,
@@ -191,13 +225,13 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             policyType: reservation.policyType || 'customer'
         });
 
+        // Populate stops
         setStops(reservation.stops.length > 0 ? reservation.stops : [
             { id: '1', location: '', isAirport: false },
             { id: '2', location: '', isAirport: false }
         ]);
 
-        setRateBreakdown(reservation.rateBreakdown || null);
-
+        // Set customer mode
         if (reservation.customerId) {
             setCustomerMode('select');
             setSelectedCustomerId(reservation.customerId);
@@ -205,69 +239,24 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             setCustomerMode('create');
         }
 
-        setInitialFormState({
-            formData: {
-                customerName: reservation.customer,
-                customerEmail: reservation.email,
-                customerPhone: reservation.phone,
-                customerCompany: reservation.company || '',
-                pickupDate: reservation.pickupDate,
-                pickupTime: reservation.pickupTime,
-                vehicle: reservation.vehicle,
-                passengers: reservation.passengers,
-                hours: reservation.hours,
-                specialInstructions: reservation.specialInstructions || '',
-                bookedByName: reservation.bookedByName || '',
-                bookedByEmail: reservation.bookedByEmail || '',
-                bookedByPhone: reservation.bookedByPhone || '',
-                tripNotes: reservation.tripNotes || '',
-                internalNotes: reservation.internalNotes || '',
-                addToConfirmation: reservation.addToConfirmation || false,
-                policyType: reservation.policyType || 'customer'
-            },
-            stops: reservation.stops
-        });
-
+        // Open modal
         setShowModal(true);
         setModalState('default');
-        setValidationErrors([]);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const validation = validateReservationForm(
-            formData.customerName,
-            formData.customerEmail,
-            formData.customerPhone,
-            formData.pickupDate,
-            formData.pickupTime,
-            stops,
-            formData.vehicle
-        );
-
-        if (!validation.valid) {
-            setValidationErrors(validation.errors);
-            const modalContent = document.querySelector('.modal-content-scrollable');
-            if (modalContent) {
-                modalContent.scrollTop = 0;
-            }
-            return;
-        }
-
-        setValidationErrors([]);
-
+        // Find existing res to keep its number, or generate new one
         const existingRes = isEditMode && editingReservationId ? reservations.find(r => r.id === editingReservationId) : null;
 
-        const now = new Date().toISOString();
         const reservationData: Reservation = {
-            id: isEditMode && editingReservationId ? editingReservationId : (Math.max(0, ...reservations.map(r => r.id)) + 1),
-            confirmationNumber: existingRes ? existingRes.confirmationNumber : generateUniqueConfirmationNumber(reservations),
+            id: isEditMode && editingReservationId ? editingReservationId : reservations.length + 1,
+            confirmationNumber: existingRes ? existingRes.confirmationNumber : generateConfirmationNumber(),
             customer: formData.customerName,
             customerId: customerMode === 'select' ? selectedCustomerId || undefined : undefined,
             email: formData.customerEmail,
-            phone: formatPhoneNumber(formData.customerPhone),
-            company: formData.customerCompany || undefined,
+            phone: formData.customerPhone,
             pickupDate: formData.pickupDate,
             pickupTime: formData.pickupTime,
             stops: stops.filter(stop => stop.location.trim() !== ''),
@@ -280,20 +269,18 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             bookedByName: formData.bookedByName || undefined,
             bookedByEmail: formData.bookedByEmail || undefined,
             bookedByPhone: formData.bookedByPhone || undefined,
-            tripNotes: formData.tripNotes || undefined,
-            internalNotes: formData.internalNotes || undefined,
+            tripNotes: formData.tripNotes,
+            internalNotes: formData.internalNotes,
             addToConfirmation: formData.addToConfirmation,
             rateBreakdown: rateBreakdown || undefined,
-            policyType: formData.policyType,
-            createdAt: existingRes?.createdAt || now,
-            updatedAt: now
+            policyType: formData.policyType
         };
 
+        // Show preview instead of immediately creating/updating
         setPreviewData({
             customerName: formData.customerName,
             customerEmail: formData.customerEmail,
-            customerPhone: formatPhoneNumber(formData.customerPhone),
-            customerCompany: formData.customerCompany,
+            customerPhone: formData.customerPhone,
             pickupDate: formData.pickupDate,
             pickupTime: formData.pickupTime,
             stops: stops.filter(stop => stop.location.trim() !== ''),
@@ -320,7 +307,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     }, []);
 
     const resetForm = () => {
-        const defaultFormData = {
+        setFormData({
             customerName: '',
             customerEmail: '',
             customerPhone: '',
@@ -337,10 +324,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             tripNotes: '',
             internalNotes: '',
             addToConfirmation: false,
-            policyType: 'customer' as 'customer' | 'driver' | 'affiliate' | 'none'
-        };
-
-        setFormData(defaultFormData);
+            policyType: 'customer'
+        });
         setStops([
             { id: '1', location: '', isAirport: false },
             { id: '2', location: '', isAirport: false }
@@ -352,17 +337,14 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         setModalState('default');
         setRateTableTotal(0);
         setRateBreakdown(null);
-        setValidationErrors([]);
-        setInitialFormState(null);
-        clearDraftFromLocalStorage();
     };
 
     const sendConfirmation = (reservation: Reservation) => {
+        // Create preview data from reservation
         const preview = {
             customerName: reservation.customer,
             customerEmail: reservation.email,
             customerPhone: reservation.phone,
-            customerCompany: reservation.company,
             pickupDate: reservation.pickupDate,
             pickupTime: reservation.pickupTime,
             stops: reservation.stops,
@@ -378,87 +360,36 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             addToConfirmation: reservation.addToConfirmation,
             rateBreakdown: reservation.rateBreakdown,
             policyType: reservation.policyType || 'customer',
-            reservationData: reservation,
-            isResend: true
+            reservationData: reservation
         };
         setPreviewData(preview);
         setShowConfirmationPreview(true);
     };
 
-    const handleConfirmSend = async (autoConfirm: boolean = false) => {
+    const handleConfirmSend = () => {
         if (previewData && previewData.reservationData) {
-            try {
-                const updatedStatus = autoConfirm ? 'confirmed' : previewData.reservationData.status;
-
-                let savedReservation;
-                if (isEditMode && editingReservationId) {
-                    // It's an update to existing DB record
-                    savedReservation = await ReservationAPI.update(editingReservationId, {
-                        ...previewData.reservationData,
-                        status: updatedStatus
-                    });
-
-                    if (previewData.isResend) {
-                        alert(`Confirmation email resent to ${previewData.customerEmail}`);
-                    } else {
-                        alert(`Reservation #${previewData.reservationData.confirmationNumber} updated! Confirmation email sent to ${previewData.customerEmail}`);
-                    }
-                } else {
-                    // It's a brand new record for the DB
-                    savedReservation = await ReservationAPI.create({
-                        ...previewData.reservationData,
-                        // remove the temporary frontend id
-                        id: undefined,
-                        status: updatedStatus
-                    });
-                    alert(`Reservation #${savedReservation.confirmationNumber} created! Confirmation email sent to ${previewData.customerEmail}`);
-                }
-
-                await loadReservations(); // Reload from server
-                setShowModal(false);
-                resetForm();
-            } catch (error: any) {
-                alert(`Error saving reservation: ${error.message}`);
-                return;
+            if (isEditMode && editingReservationId) {
+                // Update existing reservation
+                setReservations(reservations.map(res =>
+                    res.id === editingReservationId ? previewData.reservationData : res
+                ));
+                alert(`Reservation #${previewData.reservationData.confirmationNumber} updated and confirmation email sent to ${previewData.customerEmail}`);
+            } else {
+                // Add new reservation
+                setReservations([previewData.reservationData, ...reservations]);
+                alert(`Reservation #${previewData.reservationData.confirmationNumber} created! Confirmation email sent to ${previewData.customerEmail}`);
             }
+            setShowModal(false);
+            resetForm();
         }
         setShowConfirmationPreview(false);
         setPreviewData(null);
     };
 
-    const updateStatus = async (id: number, status: Reservation['status']) => {
-        try {
-            await ReservationAPI.update(id, { status });
-            await loadReservations();
-        } catch (error: any) {
-            alert(`Error updating status: ${error.message}`);
-        }
-    };
-
-    const handleCloseModal = () => {
-        if (initialFormState) {
-            const currentState = { formData, stops };
-            if (hasUnsavedChanges(currentState, initialFormState)) {
-                setShowCloseConfirmation(true);
-                return;
-            }
-        } else if (formData.customerName || formData.customerEmail || stops.some(s => s.location)) {
-            setShowCloseConfirmation(true);
-            return;
-        }
-
-        setShowModal(false);
-        resetForm();
-    };
-
-    const confirmClose = () => {
-        setShowCloseConfirmation(false);
-        setShowModal(false);
-        resetForm();
-    };
-
-    const cancelClose = () => {
-        setShowCloseConfirmation(false);
+    const updateStatus = (id: number, status: Reservation['status']) => {
+        setReservations(reservations.map(res =>
+            res.id === id ? { ...res, status } : res
+        ));
     };
 
     const [filterStatus, setFilterStatus] = useState<Reservation['status'] | 'all'>('all');
@@ -468,6 +399,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         return res.status === filterStatus;
     });
 
+    // Helper for modal styles based on state
     const getModalStyle = () => {
         switch (modalState) {
             case 'fullscreen':
@@ -479,7 +411,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                 };
             case 'minimized':
                 return {
-                    display: 'none'
+                    display: 'none' // Or handle differently if we want a taskbar concept, but 'none' for now or minimal
                 };
             default:
                 return {
@@ -493,23 +425,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
     return (
         <div className="reservations fade-in">
-            {showCloseConfirmation && (
-                <div className="modal-overlay" style={{ zIndex: 10000 }}>
-                    <div className="glass-card" style={{ padding: '2rem', maxWidth: '500px', margin: 'auto' }}>
-                        <h3 style={{ marginBottom: '1rem', color: 'var(--color-text-primary)' }}>Unsaved Changes</h3>
-                        <p style={{ marginBottom: '1.5rem', color: 'var(--color-text-secondary)' }}>
-                            You have unsaved changes. Are you sure you want to close? All changes will be lost.
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                            <button className="btn btn-outline" onClick={cancelClose}>Cancel</button>
-                            <button className="btn btn-primary" style={{ background: 'var(--color-danger)' }} onClick={confirmClose}>
-                                Discard Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {/* Navigation & Filters */}
             <div className="reservations-nav">
                 <div className="filters-group">
                     <button className={`filter-btn ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>All Reservations</button>
@@ -529,6 +445,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                 </div>
             </div>
 
+            {/* Minimized Tray */}
             {modalState === 'minimized' && showModal && (
                 <div className="minimized-tray">
                     <div className="minimized-item" onClick={() => setModalState('default')}>
@@ -545,94 +462,86 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                 </div>
             )}
 
+            {/* Reservations Grid */}
             <div className="reservations-grid">
-                {isLoading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
-                        Loading reservations...
-                    </div>
-                ) : filteredReservations.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
-                        No reservations found.
-                    </div>
-                ) : (
-                    filteredReservations.map((reservation) => (
-                        <div key={reservation.id} className="reservation-card glass-card">
-                            <div className="reservation-card-header">
-                                <div className="res-identity">
-                                    <span className="res-client-name">{reservation.customer}</span>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <span className="res-id-tag">ID: {reservation.id.toString().padStart(6, '0')}</span>
-                                        <span className="res-confirmation-tag">{reservation.confirmationNumber}</span>
-                                    </div>
-                                </div>
-                                <div className="res-status-dot">
-                                    <div className="glow-point" style={{
-                                        background: reservation.status === 'confirmed' ? 'var(--color-success)' :
-                                            reservation.status === 'pending' ? 'var(--color-warning)' :
-                                                reservation.status === 'completed' ? 'var(--color-primary)' : 'var(--color-danger)'
-                                    }}></div>
-                                    {reservation.status}
+                {filteredReservations.map((reservation) => (
+                    <div key={reservation.id} className="reservation-card glass-card">
+                        <div className="reservation-card-header">
+                            <div className="res-identity">
+                                <span className="res-client-name">{reservation.customer}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span className="res-id-tag">ID: {reservation.id.toString().padStart(6, '0')}</span>
+                                    <span className="res-confirmation-tag">{reservation.confirmationNumber}</span>
                                 </div>
                             </div>
-
-                            <div className="res-main-details">
-                                <div className="res-detail-item">
-                                    <span className="res-label">Pickup</span>
-                                    <span className="res-value">{reservation.pickupDate} @ {reservation.pickupTime}</span>
-                                </div>
-                                <div className="res-detail-item">
-                                    <span className="res-label">Vehicle</span>
-                                    <span className="res-value">{reservation.vehicle}</span>
-                                </div>
-                                <div className="res-detail-item">
-                                    <span className="res-label">Passengers</span>
-                                    <span className="res-value">{reservation.passengers} PAX</span>
-                                </div>
-                                <div className="res-detail-item">
-                                    <span className="res-label">Duration</span>
-                                    <span className="res-value">{reservation.hours} Hours</span>
-                                </div>
-                            </div>
-
-                            <div className="res-itinerary">
-                                <span className="res-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Itinerary</span>
-                                {reservation.stops.map((stop, index) => (
-                                    <div key={stop.id} className="itinerary-step">
-                                        <div className="step-marker" style={{
-                                            borderColor: index === 0 ? 'var(--color-primary)' :
-                                                index === reservation.stops.length - 1 ? 'var(--color-success)' : 'var(--color-border)'
-                                        }}>
-                                            {index + 1}
-                                        </div>
-                                        <div className="step-content">
-                                            <p style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>{stop.location}</p>
-                                            {stop.isAirport && (
-                                                <p style={{ fontSize: '0.7rem', color: 'var(--color-accent)', fontWeight: 800 }}>
-                                                    ✈️ {stop.airline} {stop.flightNumber}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="res-footer">
-                                <span className="res-price">${reservation.total.toLocaleString()}</span>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                    <button className="btn btn-sm btn-outline" onClick={() => sendConfirmation(reservation)}>Confirmation</button>
-                                    <button className="btn btn-sm btn-outline" onClick={() => handleEdit(reservation)}>Edit</button>
-                                    {reservation.status === 'pending' && (
-                                        <button className="btn btn-sm btn-primary" onClick={() => updateStatus(reservation.id, 'confirmed')}>Confirm</button>
-                                    )}
-                                </div>
+                            <div className="res-status-dot">
+                                <div className="glow-point" style={{
+                                    background: reservation.status === 'confirmed' ? 'var(--color-success)' :
+                                        reservation.status === 'pending' ? 'var(--color-warning)' :
+                                            reservation.status === 'completed' ? 'var(--color-primary)' : 'var(--color-danger)'
+                                }}></div>
+                                {reservation.status}
                             </div>
                         </div>
-                    ))
-                )}
+
+                        <div className="res-main-details">
+                            <div className="res-detail-item">
+                                <span className="res-label">Pickup</span>
+                                <span className="res-value">{reservation.pickupDate} @ {reservation.pickupTime}</span>
+                            </div>
+                            <div className="res-detail-item">
+                                <span className="res-label">Vehicle</span>
+                                <span className="res-value">{reservation.vehicle}</span>
+                            </div>
+                            <div className="res-detail-item">
+                                <span className="res-label">Passengers</span>
+                                <span className="res-value">{reservation.passengers} PAX</span>
+                            </div>
+                            <div className="res-detail-item">
+                                <span className="res-label">Duration</span>
+                                <span className="res-value">{reservation.hours} Hours</span>
+                            </div>
+                        </div>
+
+                        <div className="res-itinerary">
+                            <span className="res-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Itinerary</span>
+                            {reservation.stops.map((stop, index) => (
+                                <div key={stop.id} className="itinerary-step">
+                                    <div className="step-marker" style={{
+                                        borderColor: index === 0 ? 'var(--color-primary)' :
+                                            index === reservation.stops.length - 1 ? 'var(--color-success)' : 'var(--color-border)'
+                                    }}>
+                                        {index + 1}
+                                    </div>
+                                    <div className="step-content">
+                                        <p style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>{stop.location}</p>
+                                        {stop.isAirport && (
+                                            <p style={{ fontSize: '0.7rem', color: 'var(--color-accent)', fontWeight: 800 }}>
+                                                ✈️ {stop.airline} {stop.flightNumber}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="res-footer">
+                            <span className="res-price">${reservation.total.toLocaleString()}</span>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button className="btn btn-sm btn-outline" onClick={() => sendConfirmation(reservation)}>Confirmation</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => handleEdit(reservation)}>Edit</button>
+                                {reservation.status === 'pending' && (
+                                    <button className="btn btn-sm btn-primary" onClick={() => updateStatus(reservation.id, 'confirmed')}>Confirm</button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
 
+            {/* Enhanced Modal */}
             {showModal && modalState !== 'minimized' && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" onClick={() => { /* Don't close on background click */ }}>
                     <div className="modal glass-card" style={{ ...getModalStyle(), display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -644,52 +553,21 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                 <button className="modal-control-btn" title={modalState === 'fullscreen' ? 'Restore' : 'Maximize'} onClick={() => setModalState(modalState === 'fullscreen' ? 'default' : 'fullscreen')}>
                                     {modalState === 'fullscreen' ? '❐' : '☐'}
                                 </button>
-                                <button className="modal-close" onClick={handleCloseModal}>&times;</button>
+                                <button className="modal-close" onClick={() => { setShowModal(false); resetForm(); }}>&times;</button>
                             </div>
                         </div>
 
                         <div className="modal-content-scrollable">
-                            {validationErrors.length > 0 && (
-                                <div style={{
-                                    background: 'rgba(255, 50, 50, 0.1)',
-                                    border: '1px solid rgba(255, 50, 50, 0.3)',
-                                    borderRadius: '8px',
-                                    padding: '1rem',
-                                    marginBottom: '1.5rem'
-                                }}>
-                                    <h4 style={{ color: 'var(--color-danger)', marginBottom: '0.5rem', fontSize: '0.95rem' }}>
-                                        Please fix the following errors:
-                                    </h4>
-                                    <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--color-danger)' }}>
-                                        {validationErrors.map((error, index) => (
-                                            <li key={index} style={{ marginBottom: '0.25rem', fontSize: '0.9rem' }}>{error}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
                             <form onSubmit={handleSubmit} className="reservation-form">
+                                {/* Top Section: Customer & Core Info in Columns */}
                                 <div className="form-grid">
+
+                                    {/* Left Column: Customer */}
                                     <div className="section-panel">
                                         <h4 className="section-title">Passenger Information</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                                            <button type="button" className={`btn ${customerMode === 'select' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={() => {
-                                                setCustomerMode('select');
-                                                if (customerMode === 'create') {
-                                                    setFormData({
-                                                        ...formData,
-                                                        customerName: '',
-                                                        customerEmail: '',
-                                                        customerPhone: '',
-                                                        customerCompany: ''
-                                                    });
-                                                    setSelectedCustomerId(null);
-                                                }
-                                            }}>Select Existing</button>
-                                            <button type="button" className={`btn ${customerMode === 'create' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={() => {
-                                                setCustomerMode('create');
-                                                setSelectedCustomerId(null);
-                                            }}>New Customer</button>
+                                            <button type="button" className={`btn ${customerMode === 'select' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={() => setCustomerMode('select')}>Select Existing</button>
+                                            <button type="button" className={`btn ${customerMode === 'create' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={() => setCustomerMode('create')}>New Customer</button>
                                         </div>
 
                                         {customerMode === 'select' ? (
@@ -698,57 +576,46 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                 <select className="form-select" value={selectedCustomerId || ''} onChange={(e) => handleCustomerSelect(parseInt(e.target.value))} required>
                                                     <option value="">-- Select a customer --</option>
                                                     {customers.map(customer => (
-                                                        <option key={customer.id} value={customer.id}>{customer.name} {customer.company ? `(${customer.company})` : ''}</option>
+                                                        <option key={customer.id} value={customer.id}>{customer.name}</option>
                                                     ))}
                                                 </select>
-                                                {selectedCustomerId && (
-                                                    <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Name:</strong> {formData.customerName}</div>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Email:</strong> {formData.customerEmail}</div>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Phone:</strong> {formData.customerPhone}</div>
-                                                        {formData.customerCompany && <div><strong>Company:</strong> {formData.customerCompany}</div>}
-                                                    </div>
-                                                )}
                                             </div>
                                         ) : (
                                             <div className="new-customer-fields">
                                                 <div className="form-group-custom">
-                                                    <label className="form-label">Full Name *</label>
+                                                    <label className="form-label">Full Name</label>
                                                     <input type="text" className="form-input" value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })} required />
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                     <div className="form-group-custom">
-                                                        <label className="form-label">Phone *</label>
-                                                        <input type="tel" className="form-input" value={formData.customerPhone} onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })} required placeholder="(555) 123-4567" />
+                                                        <label className="form-label">Phone</label>
+                                                        <input type="tel" className="form-input" value={formData.customerPhone} onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })} required />
                                                     </div>
                                                     <div className="form-group-custom">
-                                                        <label className="form-label">Email *</label>
+                                                        <label className="form-label">Email</label>
                                                         <input type="email" className="form-input" value={formData.customerEmail} onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })} required />
                                                     </div>
-                                                </div>
-                                                <div className="form-group-custom">
-                                                    <label className="form-label">Company (Optional)</label>
-                                                    <input type="text" className="form-input" value={formData.customerCompany} onChange={(e) => setFormData({ ...formData, customerCompany: e.target.value })} />
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
+                                    {/* Right Column: Asset */}
                                     <div className="section-panel">
                                         <h4 className="section-title">Logistics & Asset</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="form-group-custom">
-                                                <label className="form-label">Pickup Date *</label>
+                                                <label className="form-label">Pickup Date</label>
                                                 <input type="date" className="form-input" value={formData.pickupDate} onChange={(e) => setFormData({ ...formData, pickupDate: e.target.value })} required />
                                             </div>
                                             <div className="form-group-custom">
-                                                <label className="form-label">Pickup Time *</label>
+                                                <label className="form-label">Pickup Time</label>
                                                 <input type="time" className="form-input" value={formData.pickupTime} onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })} required />
                                             </div>
                                         </div>
                                         <div className="form-group-custom">
-                                            <label className="form-label">Vehicle Assignment *</label>
-                                            <select className="form-select" value={formData.vehicle} onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })} required>
+                                            <label className="form-label">Vehicle Assignment</label>
+                                            <select className="form-select" value={formData.vehicle} onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })}>
                                                 <option>Mercedes S-Class</option>
                                                 <option>Cadillac Escalade</option>
                                                 <option>Mercedes Sprinter</option>
@@ -757,19 +624,20 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="form-group-custom">
-                                                <label className="form-label">PAX *</label>
+                                                <label className="form-label">PAX</label>
                                                 <input type="number" className="form-input" value={formData.passengers} onChange={(e) => setFormData({ ...formData, passengers: parseInt(e.target.value) })} min="1" required />
                                             </div>
                                             <div className="form-group-custom">
-                                                <label className="form-label">Duration (Hrs) *</label>
+                                                <label className="form-label">Duration (Hrs)</label>
                                                 <input type="number" className="form-input" value={formData.hours} onChange={(e) => setFormData({ ...formData, hours: parseInt(e.target.value) })} min="1" required />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
+                                {/* Full Width: Itinerary */}
                                 <div className="itinerary-protocol">
-                                    <h5 className="section-title">ITINERARY PROTOCOL *</h5>
+                                    <h5 className="section-title">ITINERARY PROTOCOL</h5>
                                     <div>
                                         {stops.map((stop, index) => (
                                             <div key={stop.id} className="stop-entry-item">
@@ -777,14 +645,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
                                                 <div className="stop-inputs">
                                                     <div className="form-group-custom" style={{ marginBottom: 0 }}>
-                                                        <input
-                                                            type="text"
-                                                            className="form-input"
-                                                            value={stop.location}
-                                                            onChange={(e) => updateStop(stop.id, 'location', e.target.value)}
-                                                            required={index < 2}
-                                                            placeholder={index === 0 ? "Pickup Address or Airport Code *" : index === stops.length - 1 ? "Dropoff Address *" : "Waypoint Address"}
-                                                        />
+                                                        <input type="text" className="form-input" value={stop.location} onChange={(e) => updateStop(stop.id, 'location', e.target.value)} required={index === 0} placeholder={index === 0 ? "Pickup Address or Airport Code" : "Dropoff Address"} />
                                                     </div>
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem' }}>
                                                         <label className="checkbox-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', opacity: 0.8, cursor: 'pointer' }}>
@@ -793,9 +654,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                         </label>
                                                         {stop.isAirport && (
                                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                                <input type="text" className="form-input" style={{ width: '120px', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} value={stop.airline || ''} onChange={(e) => updateStop(stop.id, 'airline', e.target.value)} placeholder="Airline" />
-                                                                <input type="text" className="form-input" style={{ width: '100px', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} value={stop.flightNumber || ''} onChange={(e) => updateStop(stop.id, 'flightNumber', e.target.value)} placeholder="Flight #" />
-                                                                <input type="text" className="form-input" style={{ width: '80px', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} value={stop.terminal || ''} onChange={(e) => updateStop(stop.id, 'terminal', e.target.value)} placeholder="Terminal" />
+                                                                <input type="text" className="form-input" style={{ width: '100px', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} value={stop.airline || ''} onChange={(e) => updateStop(stop.id, 'airline', e.target.value)} placeholder="Airline" />
+                                                                <input type="text" className="form-input" style={{ width: '80px', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} value={stop.flightNumber || ''} onChange={(e) => updateStop(stop.id, 'flightNumber', e.target.value)} placeholder="Flt #" />
                                                             </div>
                                                         )}
                                                     </div>
@@ -814,6 +674,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                     </button>
                                 </div>
 
+                                {/* Trip Notes & Internal Instructions */}
                                 <div className="section-panel" style={{ marginTop: '0' }}>
                                     <h4 className="section-title">Trip Notes & Internal Instructions</h4>
 
@@ -868,19 +729,19 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                     </div>
                                 </div>
 
+                                {/* Check Rates & Submit */}
                                 <div className="section-panel" style={{ marginTop: '0' }}>
                                     <h4 className="section-title">Rate Calculation</h4>
                                     <RateTable
                                         onUpdateTotal={handleRateUpdate}
                                         hours={formData.hours}
                                         passengers={formData.passengers}
-                                        initialBreakdown={rateBreakdown}
                                     />
                                 </div>
 
                                 <div className="form-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
-                                    <button type="button" className="btn btn-outline" style={{ minWidth: '120px' }} onClick={handleCloseModal}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary" style={{ minWidth: '180px' }}>{isEditMode ? 'Review Changes' : 'Review & Create'}</button>
+                                    <button type="button" className="btn btn-outline" style={{ minWidth: '120px' }} onClick={() => { setShowModal(false); resetForm(); }}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary" style={{ minWidth: '180px' }}>{isEditMode ? 'Save Changes' : 'Review & Create'}</button>
                                 </div>
                             </form>
                         </div>
@@ -888,19 +749,14 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                 </div>
             )}
 
-            {
-                showConfirmationPreview && previewData && (
-                    <ConfirmationPreview
-                        reservation={previewData}
-                        onClose={() => {
-                            setShowConfirmationPreview(false);
-                            setPreviewData(null);
-                        }}
-                        onSend={handleConfirmSend}
-                    />
-                )
-            }
-        </div >
+            {showConfirmationPreview && previewData && (
+                <ConfirmationPreview
+                    reservation={previewData}
+                    onClose={() => setShowConfirmationPreview(false)}
+                    onSend={handleConfirmSend}
+                />
+            )}
+        </div>
     );
 }
 

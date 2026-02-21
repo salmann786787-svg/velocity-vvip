@@ -12,6 +12,9 @@ interface TemplateSettingsData {
     contactPhone: string;
     contactEmail: string;
     contactWebsite: string;
+    policyCustomer: string;
+    policyDriver: string;
+    policyAffiliate: string;
 }
 
 const defaultSettings: TemplateSettingsData = {
@@ -24,7 +27,10 @@ const defaultSettings: TemplateSettingsData = {
     footerMessage: 'Your chauffeur will arrive 15 minutes prior to your scheduled pickup time. If you have any questions, please contact us at support@velocityvvip.com',
     contactPhone: '(800) VVIP-LIMO',
     contactEmail: 'reservations@velocityvvip.com',
-    contactWebsite: 'www.velocityvvip.com'
+    contactWebsite: 'www.velocityvvip.com',
+    policyCustomer: 'CANCELLATION POLICY: Cancellations made less than 24 hours before pickup are subject to a full charge. NO-SHOW POLICY: Full charge applies if passenger is not found within 30 minutes of scheduled time.',
+    policyDriver: 'DRESS CODE: Dark Suit, White Shirt, Tie. ARRIVAL: 15 Minutes prior to pickup. GREETING: Open door, offer water, assist with luggage along with a big smile.',
+    policyAffiliate: 'COMMISSION: 10% commission on base rate. PAYMENT: Net 30 days. STANDARDS: Driver must be in full suit. Vehicle must be 2023 or newer model.'
 };
 
 const TemplateSettings: React.FC = () => {
@@ -34,7 +40,9 @@ const TemplateSettings: React.FC = () => {
     useEffect(() => {
         const stored = localStorage.getItem('confirmationTemplateSettings');
         if (stored) {
-            setSettings(JSON.parse(stored));
+            // merge stored with default to handle new fields if they don't exist in stored
+            const parsed = JSON.parse(stored);
+            setSettings({ ...defaultSettings, ...parsed });
         }
     }, []);
 
@@ -176,6 +184,47 @@ const TemplateSettings: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Policies Section - NEW */}
+                <div className="settings-section glass-card" style={{ gridColumn: 'span 1' }}>
+                    <h3>📜 Operational Policies</h3>
+                    <div className="form-group">
+                        <label className="form-label">Customer / Client Policy</label>
+                        <textarea
+                            name="policyCustomer"
+                            className="form-input"
+                            value={settings.policyCustomer}
+                            onChange={handleChange}
+                            rows={4}
+                            placeholder="Cancellation policy, waiting time charges, etc."
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Driver / Chauffeur Policy</label>
+                        <textarea
+                            name="policyDriver"
+                            className="form-input"
+                            value={settings.policyDriver}
+                            onChange={handleChange}
+                            rows={4}
+                            placeholder="Dress code, arrival procedures, greeting protocols..."
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Affiliate / Partner Policy</label>
+                        <textarea
+                            name="policyAffiliate"
+                            className="form-input"
+                            value={settings.policyAffiliate}
+                            onChange={handleChange}
+                            rows={4}
+                            placeholder="Commission rates, payment terms, vehicle standards..."
+                            style={{ resize: 'vertical' }}
+                        />
                     </div>
                 </div>
 

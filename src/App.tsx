@@ -8,13 +8,17 @@ import Accounts from './components/Accounts';
 import TemplateSettings from './components/TemplateSettings';
 import Drivers from './components/Drivers';
 import Affiliates from './components/Affiliates';
+import Login from './components/Login';
+import { isAuthenticated, AuthAPI } from './services/api';
 
 type View = 'dashboard' | 'reservations' | 'fleet' | 'dispatch' | 'accounts' | 'settings' | 'drivers' | 'affiliates';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [createReservationMode, setCreateReservationMode] = useState(false);
 
   useEffect(() => {
     let lastWidth = window.innerWidth;
@@ -43,17 +47,32 @@ function App() {
     }
   };
 
-  const handleNavClick = (view: View) => {
+  const handleNavClick = (view: View, createMode: boolean = false) => {
     setCurrentView(view);
+    setCreateReservationMode(createMode);
     closeSidebarOnMobile();
   };
+
+  const handleLogout = () => {
+    AuthAPI.logout();
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
 
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
         return <Dashboard onNavigate={handleNavClick} />;
       case 'reservations':
-        return <Reservations />;
+        return (
+          <Reservations
+            initialCreateMode={createReservationMode}
+            onResetCreateMode={() => setCreateReservationMode(false)}
+          />
+        );
       case 'fleet':
         return <Fleet />;
       case 'dispatch':
@@ -218,16 +237,37 @@ function App() {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <h2>
-              {currentView === 'dashboard' ? 'Overview' :
-                currentView === 'reservations' ? 'Reservations' :
-                  currentView === 'fleet' ? 'Fleet Management' :
-                    currentView === 'dispatch' ? 'Daily Dispatch' :
+            {currentView === 'dispatch' ? (
+              <button
+                className="btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.6rem 1.2rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                }}
+                onClick={() => handleNavClick('reservations', true)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Reservation
+              </button>
+            ) : (
+              <h2>
+                {currentView === 'dashboard' ? 'Overview' :
+                  currentView === 'reservations' ? 'Reservations' :
+                    currentView === 'fleet' ? 'Fleet Management' :
                       currentView === 'accounts' ? 'Customers' :
                         currentView === 'drivers' ? 'Driver Management' :
                           currentView === 'affiliates' ? 'Affiliates' :
                             currentView === 'settings' ? 'Settings' : 'Velocity'}
-            </h2>
+              </h2>
+            )}
           </div>
           <div className="top-bar-right">
             <div className="user-info">
@@ -239,7 +279,20 @@ function App() {
               </div>
               <div className="user-details">
                 <span className="user-name">Admin User</span>
-                <span className="user-role">Administrator</span>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    padding: 0,
+                    textAlign: 'left'
+                  }}
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
           </div>

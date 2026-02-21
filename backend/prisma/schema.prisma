@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(DISPATCHER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  DRIVER
+  AFFILIATE
+}
+
+model Customer {
+  id            Int           @id @default(autoincrement())
+  name          String
+  email         String        @unique
+  phone         String
+  company       String?
+  isVIP         Boolean       @default(false)
+  reservations  Reservation[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Reservation {
+  id                  Int      @id @default(autoincrement())
+  confirmationNumber  String   @unique
+  customerId          Int
+  customer            Customer @relation(fields: [customerId], references: [id])
+  pickupDate          DateTime
+  pickupTime          String
+  stops               Json     
+  vehicle             String
+  passengers          Int
+  hours               Int
+  total               Float
+  status              Status   @default(PENDING)
+  specialInstructions String?
+  rateBreakdown       Json?
+  policyType          PolicyType @default(CUSTOMER)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+enum Status {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PolicyType {
+  CUSTOMER
+  DRIVER
+  AFFILIATE
+  NONE
+}
+
+model Driver {
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  phone           String
+  licenseNumber   String   @unique
+  status          DriverStatus @default(AVAILABLE)
+  assignedVehicle String?
+  rating          Float    @default(5.0)
+  tripsCompleted  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement())
+  make        String
+  model       String
+  year        Int
+  plateNumber String   @unique
+  vin         String   @unique
+  status      VehicleStatus @default(AVAILABLE)
+  mileage     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  IN_SERVICE
+  MAINTENANCE
+  OFFLINE
+}
+
+model Affiliate {
+  id              Int      @id @default(autoincrement())
+  companyName     String
+  contactName     String
+  email           String   @unique
+  phone           String
+  city            String
+  commissionRate  Float
+  status          AffiliateStatus @default(ACTIVE)
+  completedBookings Int    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum AffiliateStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}

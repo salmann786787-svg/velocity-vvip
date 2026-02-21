@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: 3.5rem;
+    height: 100%;
 }
 
 .reservations-header {
@@ -118,9 +119,18 @@
     transition: opacity 0.3s ease;
 }
 
+/* Fix for hover jitter: Extend hit area */
+.reservation-card::after {
+    content: '';
+    position: absolute;
+    inset: -10px -10px -20px -10px;
+    z-index: -1;
+    background: transparent;
+}
+
 .reservation-card:hover {
     border-color: hsla(280, 100%, 70%, 0.3);
-    transform: translateY(-8px) scale(1.01);
+    /* transform: translateY(-8px) scale(1.01); REMOVED to prevent jitter */
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px hsla(280, 100%, 70%, 0.2);
     z-index: 20;
 }
@@ -154,6 +164,15 @@
     color: var(--color-text-muted);
     letter-spacing: 0.15em;
     font-weight: 600;
+}
+
+.res-confirmation-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-primary);
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    margin-top: 0.25rem;
 }
 
 .res-status-dot {
@@ -255,32 +274,264 @@
     font-family: 'Outfit', sans-serif;
 }
 
-/* Modal Styling */
-.modal.glass-card {
-    padding: min(3.5rem, 7vw);
+/* --- POWER USER MODAL DESIGN --- */
+
+.modal-content-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 0.5rem;
+    margin-right: -0.5rem;
+    /* Prevent scrollbar overlapping content */
+}
+
+/* Distinct Section Panels */
+.section-panel {
+    background: hsla(230, 25%, 8%, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 2rem;
+    /* Spacing between panels */
+}
+
+.section-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-primary-light);
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--glass-border) 0%, transparent 100%);
 }
 
 .reservation-form {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
+    height: 100%;
 }
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 2rem;
 }
 
-/* Stop Entry Styling */
-.stop-entry-card {
-    background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.03) 0%, transparent 100%);
-    border: 1px solid var(--glass-border);
-    padding: 2rem;
-    border-radius: 28px;
+/* Enhanced Form Inputs */
+.form-group-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.form-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    /* Lighter than muted */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-input,
+.form-select {
+    background: hsla(230, 20%, 5%, 0.8);
+    /* Darker background */
+    border: 1px solid hsla(0, 0%, 100%, 0.15);
+    /* Clearer border */
+    color: #fff;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    /* Slightly sharper */
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+    background: hsla(230, 20%, 4%, 1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary), 0 0 15px rgba(189, 75, 255, 0.1);
+}
+
+.form-input::placeholder {
+    color: hsla(230, 10%, 60%, 0.5);
+}
+
+/* Itinerary Protocol Enhancement */
+.itinerary-protocol {
+    position: relative;
+    padding-left: 1rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    /* Explicit gap between stops */
+}
+
+/* The vertical line connecting stops */
+.itinerary-protocol::before {
+    content: '';
+    position: absolute;
+    left: 27px;
+    /* Align with center of marker (1rem padding + 18px half-width) */
+    top: 2rem;
+    bottom: 2rem;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--color-primary) 0%, var(--color-secondary) 100%);
+    opacity: 0.3;
+    z-index: 0;
+}
+
+.stop-entry-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    position: relative;
+    z-index: 1;
+}
+
+.stop-marker {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-bg-secondary);
+    border: 2px solid var(--color-primary);
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    font-family: var(--font-mono, monospace);
+}
+
+.stop-inputs {
+    background: hsla(230, 20%, 10%, 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.remove-stop-btn {
+    background: hsla(350, 100%, 65%, 0.1);
+    color: var(--color-danger);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.remove-stop-btn:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+/* Window Controls */
+.window-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.modal-control-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-control-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.modal-close {
+    width: 28px;
+    height: 28px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 4px;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+/* Minimized Tray */
+.minimized-tray {
+    position: fixed;
+    bottom: 0;
+    right: 2rem;
+    display: flex;
+    gap: 1rem;
+    z-index: 2000;
+    pointer-events: none;
+    /* Let clicks pass through empty space */
+}
+
+.minimized-item {
+    pointer-events: auto;
+    width: 260px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-primary);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.minimized-item:hover {
+    transform: translateY(-4px);
+    background: var(--color-bg-tertiary);
+}
+
+.minimized-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Responsive */
@@ -313,25 +564,12 @@
         padding: 1.25rem;
     }
 
-    .filters-group {
-        width: 100%;
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-        justify-content: flex-start;
-        scrollbar-width: none;
+    .stop-entry-item {
+        grid-template-columns: 40px 1fr;
     }
 
-    .filters-group::-webkit-scrollbar {
-        display: none;
-    }
-
-    .filter-btn {
-        padding: 0.6rem 1.2rem;
-        font-size: 0.75rem;
-        white-space: nowrap;
-    }
-
-    .reservation-form {
-        gap: 2rem;
+    .remove-stop-btn {
+        grid-column: 2;
+        justify-self: end;
     }
 }

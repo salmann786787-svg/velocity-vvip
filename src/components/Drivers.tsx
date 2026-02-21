@@ -27,68 +27,7 @@ const Drivers: React.FC = () => {
         assignedVehicle: '',
     });
 
-    const [drivers, setDrivers] = useState<Driver[]>([
-        {
-            id: 1,
-            name: 'James Miller',
-            email: 'james.m@velocity.com',
-            phone: '(555) 123-0001',
-            licenseNumber: 'DL-998877',
-            status: 'on-trip',
-            assignedVehicle: 'Mercedes S-Class',
-            joinedDate: '2025-01-10',
-            rating: 4.9,
-            tripsCompleted: 156
-        },
-        {
-            id: 2,
-            name: 'Maria Garcia',
-            email: 'maria.g@velocity.com',
-            phone: '(555) 123-0002',
-            licenseNumber: 'DL-445566',
-            status: 'available',
-            assignedVehicle: 'Cadillac Escalade',
-            joinedDate: '2025-02-15',
-            rating: 4.8,
-            tripsCompleted: 98
-        },
-        {
-            id: 3,
-            name: 'David Lee',
-            email: 'david.l@velocity.com',
-            phone: '(555) 123-0003',
-            licenseNumber: 'DL-112233',
-            status: 'available',
-            assignedVehicle: 'BMW 7 Series',
-            joinedDate: '2025-03-20',
-            rating: 5.0,
-            tripsCompleted: 42
-        },
-        {
-            id: 4,
-            name: 'Robert Chen',
-            email: 'robert.c@velocity.com',
-            phone: '(555) 123-0004',
-            licenseNumber: 'DL-776655',
-            status: 'available',
-            assignedVehicle: 'Lincoln Navigator',
-            joinedDate: '2025-04-05',
-            rating: 4.7,
-            tripsCompleted: 215
-        },
-        {
-            id: 5,
-            name: 'Jennifer Martinez',
-            email: 'jennifer.m@velocity.com',
-            phone: '(555) 123-0005',
-            licenseNumber: 'DL-334455',
-            status: 'off-duty',
-            assignedVehicle: 'Mercedes Sprinter',
-            joinedDate: '2025-05-12',
-            rating: 4.9,
-            tripsCompleted: 184
-        }
-    ]);
+    const [drivers, setDrivers] = useState<Driver[]>([]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

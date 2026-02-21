@@ -27,41 +27,7 @@ const Affiliates: React.FC = () => {
         status: 'active' as Affiliate['status'],
     });
 
-    const [affiliates, setAffiliates] = useState<Affiliate[]>([
-        {
-            id: 1,
-            companyName: 'Luxe Transit NY',
-            contactName: 'Steve Rogers',
-            email: 'steve@luxetransit.com',
-            phone: '(212) 555-0199',
-            city: 'New York',
-            commissionRate: 15,
-            status: 'active',
-            completedBookings: 45
-        },
-        {
-            id: 2,
-            companyName: 'Elite Wheels Chicago',
-            contactName: 'Tony Stark',
-            email: 'tony@elitewheels.com',
-            phone: '(312) 555-0188',
-            city: 'Chicago',
-            commissionRate: 12,
-            status: 'active',
-            completedBookings: 32
-        },
-        {
-            id: 3,
-            companyName: 'Golden State Limo',
-            contactName: 'Bruce Banner',
-            email: 'bruce@gslimo.com',
-            phone: '(415) 555-0177',
-            city: 'San Francisco',
-            commissionRate: 20,
-            status: 'inactive',
-            completedBookings: 12
-        }
-    ]);
+    const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
