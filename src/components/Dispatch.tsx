@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import './Dispatch.css';
+import { ReservationAPI } from '../services/api';
+import type { Reservation } from '../types';
 
 interface DispatchRow {
     id: number;
@@ -24,10 +26,81 @@ interface DispatchRow {
 
 function Dispatch() {
     const dateInputRef = useRef<HTMLInputElement>(null);
-    const [currentDate, setCurrentDate] = useState<Date>(new Date('2026-02-16T12:00:00')); // Default to match screenshot date for context
+    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock Data based on the reference image + extra testing data
-    const [dispatchData, setDispatchData] = useState<DispatchRow[]>([]);
+    // Live Data from API
+    const [reservations, setReservations] = useState<Reservation[]>([]);
+
+    const loadReservations = async () => {
+        try {
+            setIsLoading(true);
+            const data = await ReservationAPI.getAll();
+            setReservations(data);
+        } catch (error) {
+            console.error('Failed to load reservations for dispatch:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadReservations();
+    }, []);
+
+    // Derived Dispatch Data based on currentDate
+    const dispatchData = useMemo(() => {
+        const targetDateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        return reservations
+            .filter(r => {
+                // Keep anything matching the pick up date
+                if (!r.pickupDate) return false;
+                // Parse date or compare string
+                const resDate = new Date(r.pickupDate);
+                const resDateStr = !!r.pickupDate && r.pickupDate.includes('-')
+                    ? r.pickupDate // if it's already YYYY-MM-DD
+                    : resDate.toISOString().split('T')[0];
+                return resDateStr === targetDateString;
+            })
+            .map(r => {
+                // Map API Reservation to DispatchRow
+                let driver = 'Unassigned';
+                // Try to determine service type based on stops
+                let svcType: DispatchRow['serviceType'] = 'Point-to-Point';
+                if (r.stops.length > 0) {
+                    if (r.stops[0].isAirport) svcType = 'From Airport';
+                    else if (r.stops[r.stops.length - 1].isAirport) svcType = 'To Airport';
+                    else if (r.hours > 0) svcType = 'Hourly/As Directed';
+                }
+
+                return {
+                    id: r.id,
+                    passenger: r.customer,
+                    serviceType: svcType,
+                    confNumber: r.confirmationNumber,
+                    status: r.status === 'confirmed' ? 'Dispatched' : r.status === 'completed' ? 'Done' : r.status === 'cancelled' ? 'Cancelled' : 'Unassigned',
+                    pickupDate: r.pickupDate,
+                    pickupTime: r.pickupTime,
+                    type: 'INH',
+                    pickupLocation: r.stops[0]?.location || '',
+                    dropoffLocation: r.stops[r.stops.length - 1]?.location || '',
+                    driver: '',
+                    vehicleType: r.vehicle,
+                    pax: r.passengers,
+                    lug: 0,
+                    notes: r.specialInstructions || r.tripNotes
+                } as DispatchRow;
+            })
+            .sort((a, b) => a.pickupTime.localeCompare(b.pickupTime));
+    }, [reservations, currentDate]);
+
+    // Used for optimistic UI updates locally
+    const [localOverrides, setLocalOverrides] = useState<Record<number, Partial<DispatchRow>>>({});
+
+    const displayDispatchData = useMemo(() => {
+        return dispatchData.map(r => ({ ...r, ...localOverrides[r.id] }));
+    }, [dispatchData, localOverrides]);
 
     const changeDate = (days: number) => {
         const newDate = new Date(currentDate);
@@ -92,7 +165,7 @@ function Dispatch() {
         if (!id) return;
         setContextMenu({ ...contextMenu, visible: false });
 
-        const reservation = dispatchData.find(r => r.id === id);
+        const reservation = displayDispatchData.find(r => r.id === id);
         if (!reservation) return;
 
         switch (action) {
@@ -120,7 +193,9 @@ Driver: ${reservation.driver || 'Unassigned'}
                 break;
             case 'cancel':
                 if (window.confirm(`Are you sure you want to cancel reservation #${reservation.confNumber}?`)) {
-                    setDispatchData(prev => prev.map(r => r.id === id ? { ...r, status: 'Cancelled' as const } : r)); // 'as const' helps TS infer the literal type
+                    setLocalOverrides(prev => ({ ...prev, [id]: { status: 'Cancelled' as const } }));
+                    // In real app, call ReservationAPI.update(id, { status: 'cancelled' })
+                    ReservationAPI.update(id, { status: 'cancelled' }).catch(console.error);
                 }
                 break;
         }
@@ -129,7 +204,9 @@ Driver: ${reservation.driver || 'Unassigned'}
     const handleEditSave = (e: React.FormEvent) => {
         e.preventDefault();
         if (editModal.reservation) {
-            setDispatchData(prev => prev.map(r => r.id === editModal.reservation!.id ? editModal.reservation! : r));
+            setLocalOverrides(prev => ({ ...prev, [editModal.reservation!.id]: editModal.reservation! }));
+            // TODO: In real app, update via API
+            // ReservationAPI.update(editModal.reservation!.id, { ... })
             setEditModal({ visible: false, reservation: null });
         }
     };
@@ -144,11 +221,7 @@ Driver: ${reservation.driver || 'Unassigned'}
 
     const handleAssignDriver = (driverName: string) => {
         if (assignModal.reservationId) {
-            setDispatchData(prev => prev.map(r =>
-                r.id === assignModal.reservationId
-                    ? { ...r, driver: driverName, status: 'Dispatched' as const }
-                    : r
-            ));
+            setLocalOverrides(prev => ({ ...prev, [assignModal.reservationId!]: { driver: driverName, status: 'Dispatched' } }));
             setAssignModal({ visible: false, reservationId: null });
         }
     };
@@ -248,7 +321,9 @@ Driver: ${reservation.driver || 'Unassigned'}
                         </tr>
                     </thead>
                     <tbody>
-                        {dispatchData.map((row) => (
+                        {displayDispatchData.length === 0 ? (
+                            <tr><td colSpan={15} style={{ textAlign: 'center', padding: '2rem' }}>No dispatch records found for {formatDate(currentDate)}</td></tr>
+                        ) : displayDispatchData.map((row) => (
                             <tr
                                 key={row.id}
                                 className={`dispatch-row ${getStatusColor(row.status)}`}
@@ -654,13 +729,13 @@ Driver: ${reservation.driver || 'Unassigned'}
             {/* Footer / Summary Strip */}
             <div className="dispatch-footer">
                 <div className="status-legend">
-                    <span className="legend-item"><span className="dot dot-dispatched"></span> Dispatched ({dispatchData.filter(d => d.status === 'Dispatched').length})</span>
-                    <span className="legend-item"><span className="dot dot-live"></span> Live ({dispatchData.filter(d => d.status === 'Customer In').length})</span>
-                    <span className="legend-item"><span className="dot dot-done"></span> Done ({dispatchData.filter(d => d.status === 'Done').length})</span>
-                    <span className="legend-item"><span className="dot dot-cancelled"></span> Cancelled ({dispatchData.filter(d => d.status === 'Cancelled').length})</span>
+                    <span className="legend-item"><span className="dot dot-dispatched"></span> Dispatched ({displayDispatchData.filter(d => d.status === 'Dispatched').length})</span>
+                    <span className="legend-item"><span className="dot dot-live"></span> Live ({displayDispatchData.filter(d => d.status === 'Customer In').length})</span>
+                    <span className="legend-item"><span className="dot dot-done"></span> Done ({displayDispatchData.filter(d => d.status === 'Done').length})</span>
+                    <span className="legend-item"><span className="dot dot-cancelled"></span> Cancelled ({displayDispatchData.filter(d => d.status === 'Cancelled').length})</span>
                 </div>
                 <div className="records-count">
-                    Showing {dispatchData.length} Records
+                    Showing {displayDispatchData.length} Records
                 </div>
             </div>
         </div>
