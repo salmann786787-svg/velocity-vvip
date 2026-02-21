@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
-import './Dispatch.css'; // Importing Dispatch styles for the modal
+import React, { useState, useEffect } from 'react';
+import './Dispatch.css';
+import './ConfirmationPreview.css';
 import type { Reservation, Stop, RateBreakdown } from '../types';
+
+interface TemplateSettings {
+    businessName: string;
+    tagline: string;
+    logoUrl: string;
+    headerGradientStart: string;
+    headerGradientEnd: string;
+    primaryColor: string;
+    footerMessage: string;
+    contactPhone: string;
+    contactEmail: string;
+    contactWebsite: string;
+    policyCustomer?: string;
+    policyDriver?: string;
+    policyAffiliate?: string;
+}
 
 interface ConfirmationPreviewProps {
     reservation: {
@@ -29,6 +46,72 @@ interface ConfirmationPreviewProps {
 
 const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, onClose, onSend }) => {
     const [showLog, setShowLog] = useState(false);
+    const [showRates, setShowRates] = useState(false);
+    const [settings, setSettings] = useState<TemplateSettings>({
+        businessName: 'VELOCITY VVIP',
+        tagline: 'Premium Limousine Services',
+        logoUrl: '',
+        headerGradientStart: '#B453E9',
+        headerGradientEnd: '#00D4FF',
+        primaryColor: '#B453E9',
+        footerMessage: 'Your chauffeur will arrive 15 minutes prior to your scheduled pickup time. If you have any questions, please contact us at support@velocityvvip.com',
+        contactPhone: '(800) VVIP-LIMO',
+        contactEmail: 'reservations@velocityvvip.com',
+        contactWebsite: 'www.velocityvvip.com'
+    });
+
+    useEffect(() => {
+        const stored = localStorage.getItem('confirmationTemplateSettings');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                const defaultData = {
+                    businessName: 'VELOCITY VVIP',
+                    tagline: 'Premium Limousine Services',
+                    logoUrl: '',
+                    headerGradientStart: '#B453E9',
+                    headerGradientEnd: '#00D4FF',
+                    primaryColor: '#B453E9',
+                    footerMessage: 'Your chauffeur will arrive 15 minutes prior to your scheduled pickup time. If you have any questions, please contact us at support@velocityvvip.com',
+                    contactPhone: '(800) VVIP-LIMO',
+                    contactEmail: 'reservations@velocityvvip.com',
+                    contactWebsite: 'www.velocityvvip.com',
+                    policyCustomer: 'Example Customer Policy: Cancellations within 24 hours will be charged at 50%. No-shows will be charged in full.',
+                    policyDriver: 'Example Chauffeur Protocol: Chauffeurs must be in full suit, arrive 15 mins early, and assist with luggage.',
+                    policyAffiliate: 'Example Affiliate Terms: All trips must be fulfilled by vehicles less than 3 years old. Chauffeurs must not solicit client.'
+                };
+                setSettings({ ...defaultData, ...parsed });
+            } catch (e) {
+                console.error('Error parsing stored settings', e);
+            }
+        }
+    }, []);
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
+    const formatTime = (timeStr: string) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+    };
+
+    const getPolicyText = () => {
+        switch (reservation.policyType) {
+            case 'customer': return settings.policyCustomer;
+            case 'driver': return settings.policyDriver;
+            case 'affiliate': return settings.policyAffiliate;
+            default: return null;
+        }
+    };
+
+    const policyText = getPolicyText();
 
     // Mock Confirmation Logs (Visual consistency with Dispatch)
     const confirmationLogs: any[] = [];
@@ -123,52 +206,257 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                 ) : (
                     <form onSubmit={handleSubmit} style={{ padding: '0 0.5rem', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
                         {/* Left Column: Summary */}
-                        <div className="confirmation-summary section-panel" style={{ height: 'fit-content' }}>
-                            <div className="section-title">
-                                <span>TRIP SUMMARY</span>
-                            </div>
-                            <div className="summary-list" style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-secondary">Date:</span>
-                                    <span className="font-bold">{reservation.pickupDate}</span>
+                        <div className="confirmation-summary section-panel" style={{ height: '70vh', overflowY: 'auto', padding: '1rem', background: '#e0e0e0', borderRadius: '12px' }}>
+                            <div className="email-preview" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', marginBottom: '-20%', width: '125%' }}>
+                                {/* Email Header */}
+                                <div className="email-header" style={{ background: `linear-gradient(135deg, ${settings.headerGradientStart}, ${settings.headerGradientEnd})` }}>
+                                    <div className="email-logo">
+                                        {settings.logoUrl ? (
+                                            <div className="uploaded-logo">
+                                                <img src={settings.logoUrl} alt={settings.businessName} />
+                                            </div>
+                                        ) : (
+                                            <div style={{ background: 'rgba(255,255,255,0.2)', width: 64, height: 64, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                                                    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h2" />
+                                                    <circle cx="7" cy="17" r="2" />
+                                                    <circle cx="17" cy="17" r="2" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        <h1>{settings.businessName}</h1>
+                                        <p className="tagline">{settings.tagline}</p>
+                                    </div>
                                 </div>
-                                <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-secondary">Time:</span>
-                                    <span className="font-bold">{reservation.pickupTime}</span>
+
+                                {/* Confirmation Badge */}
+                                <div className="confirmation-badge">
+                                    <div className="check-icon" style={{ background: settings.headerGradientStart }}>✓</div>
+                                    <h2>RESERVATION CONFIRMED</h2>
+                                    <p>Your booking has been successfully scheduled</p>
                                 </div>
-                                <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-secondary">Vehicle:</span>
-                                    <span className="font-bold">{reservation.vehicle}</span>
+
+                                {/* Customer Details */}
+                                <div className="email-section">
+                                    <h3>👤 Passenger Information</h3>
+                                    <div className="detail-grid">
+                                        <div className="detail-item">
+                                            <span className="label">Name</span>
+                                            <span className="value">{reservation.customerName}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span className="label">Email</span>
+                                            <span className="value">{reservation.customerEmail}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span className="label">Phone</span>
+                                            <span className="value">{reservation.customerPhone}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-secondary">Passenger:</span>
-                                    <span className="font-bold">{reservation.customerName}</span>
-                                </div>
+
+                                {/* Booking Contact - Conditional Render */}
                                 {reservation.bookedByName && (
-                                    <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span className="text-secondary">Booked By:</span>
-                                        <span className="font-bold">{reservation.bookedByName}</span>
+                                    <div className="email-section" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '-0.5rem' }}>
+                                        <h3>📋 Booking Contact</h3>
+                                        <div className="detail-grid">
+                                            <div className="detail-item">
+                                                <span className="label">Name</span>
+                                                <span className="value">{reservation.bookedByName}</span>
+                                            </div>
+                                            <div className="detail-item">
+                                                <span className="label">Email</span>
+                                                <span className="value">{reservation.bookedByEmail || 'N/A'}</span>
+                                            </div>
+                                            <div className="detail-item">
+                                                <span className="label">Phone</span>
+                                                <span className="value">{reservation.bookedByPhone || 'N/A'}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
+
+                                {/* Trip Details */}
+                                <div className="email-section" style={{ background: '#fafafa' }}>
+                                    <h3>🚗 Trip Details</h3>
+                                    <div className="trip-highlights">
+                                        <div className="highlight-card">
+                                            <span className="label">Pickup Date</span>
+                                            <span className="value">{formatDate(reservation.pickupDate)}</span>
+                                        </div>
+                                        <div className="highlight-card">
+                                            <span className="label">Pickup Time</span>
+                                            <span className="value">{formatTime(reservation.pickupTime)}</span>
+                                        </div>
+                                        <div className="highlight-card">
+                                            <span className="label">Vehicle Type</span>
+                                            <span className="value">{reservation.vehicle}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Itinerary */}
+                                <div className="email-section">
+                                    <h3>📍 Itinerary</h3>
+                                    <div className="itinerary">
+                                        {reservation.stops.map((stop, index) => (
+                                            <div key={stop.id} className="itinerary-stop" style={{ display: 'flex', gap: '2.5rem' }}>
+                                                <div className="stop-indicator" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '48px' }}>
+                                                    <div className={`stop-icon ${index === 0 ? 'pickup' : index === reservation.stops.length - 1 ? 'destination' : 'intermediate'}`}>
+                                                        {index === 0 ? 'A' : index === reservation.stops.length - 1 ? 'B' : index}
+                                                    </div>
+                                                    {index < reservation.stops.length - 1 && <div className="stop-line" />}
+                                                </div>
+                                                <div className="stop-details" style={{ flex: 1, paddingBottom: '3.5rem' }}>
+                                                    <div className="stop-label">
+                                                        {index === 0 ? 'Pickup Location' : index === reservation.stops.length - 1 ? 'Drop-off Location' : `Stop ${index}`}
+                                                    </div>
+                                                    <div className="stop-location">{stop.location}</div>
+                                                    {stop.isAirport && stop.airline && (
+                                                        <div className="flight-info">
+                                                            ✈️ {stop.airline} {stop.flightNumber}
+                                                            {stop.terminal && ` [T${stop.terminal}]`}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Additional Info */}
+                                <div className="email-section" style={{ background: '#fafafa' }}>
+                                    <h3>ℹ️ Additional Details</h3>
+                                    <div className="detail-grid">
+                                        <div className="detail-item">
+                                            <span className="label">Passengers</span>
+                                            <span className="value">{reservation.passengers} PAX</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span className="label">Duration</span>
+                                            <span className="value">{reservation.hours} Hours</span>
+                                        </div>
+                                        <div className="detail-item full-width" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                                            <label className="checkbox-container" style={{ fontSize: '0.9rem', cursor: 'pointer', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <input type="checkbox" checked={showRates} onChange={(e) => setShowRates(e.target.checked)} />
+                                                <span style={{ fontWeight: 'bold' }}>Show Full Rate Breakdown</span>
+                                            </label>
+
+                                            {showRates ? (
+                                                reservation.rateBreakdown ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', width: '100%', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid #eee' }}>
+                                                        {reservation.rateBreakdown.flatRate > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{reservation.rateBreakdown.flatRateLabel}</span>
+                                                                <span>${reservation.rateBreakdown.flatRate.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        {reservation.rateBreakdown.hourlyTotal > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{reservation.rateBreakdown.hourlyRateLabel} ({reservation.rateBreakdown.hourlyHours}h @ ${reservation.rateBreakdown.hourlyRate})</span>
+                                                                <span>${reservation.rateBreakdown.hourlyTotal.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        {reservation.rateBreakdown.extraStopsTotal > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{reservation.rateBreakdown.extraStopLabel} ({reservation.rateBreakdown.extraStopCount})</span>
+                                                                <span>${reservation.rateBreakdown.extraStopsTotal.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        {reservation.rateBreakdown.sanitizingFee > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{reservation.rateBreakdown.sanitizingFeeLabel}</span>
+                                                                <span>${reservation.rateBreakdown.sanitizingFee.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        {reservation.rateBreakdown.otWaitTime > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{reservation.rateBreakdown.otWaitTimeLabel}</span>
+                                                                <span>${reservation.rateBreakdown.otWaitTime.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>{reservation.rateBreakdown.stdGratLabel} ({reservation.rateBreakdown.stdGratPercent}%)</span>
+                                                            <span>${reservation.rateBreakdown.primaryGratTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>{reservation.rateBreakdown.stcSurchLabel} ({reservation.rateBreakdown.stcSurchPercent}%)</span>
+                                                            <span>${reservation.rateBreakdown.stcSurchTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>{reservation.rateBreakdown.taxLabel} ({reservation.rateBreakdown.stdTaxPercent}%)</span>
+                                                            <span>${reservation.rateBreakdown.primaryTaxTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                                            <span>Grand Total</span>
+                                                            <span>${reservation.rateBreakdown.grandTotal.toFixed(2)}</span>
+                                                        </div>
+                                                        {reservation.rateBreakdown.deposit > 0 && (
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}>
+                                                                <span>Paid / Deposit</span>
+                                                                <span>-${reservation.rateBreakdown.deposit.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                                            <span>Total Due</span>
+                                                            <span>${reservation.rateBreakdown.totalDue.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="detail-item">
+                                                        <span className="value price">{getTotal()}</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#888', display: 'block' }}>(Breakdown unavailable)</span>
+                                                    </div>
+                                                )
+                                            ) : (
+                                                <div className="detail-item">
+                                                    <span className="value price">{getTotal()}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Trip Notes - Conditional Render */}
+                                {reservation.addToConfirmation && reservation.tripNotes && (
+                                    <div className="email-section">
+                                        <h3>📝 Trip Notes</h3>
+                                        <div className="instructions-box" style={{ background: '#fff', border: '1px solid #eee' }}>
+                                            {reservation.tripNotes}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Special Instructions */}
                                 {reservation.specialInstructions && (
-                                    <div className="summary-row" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                        <span className="text-secondary" style={{ fontSize: '0.75rem' }}>SPECIAL INSTRUCTIONS</span>
-                                        <span className="font-bold" style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>{reservation.specialInstructions}</span>
+                                    <div className="email-section">
+                                        <h3>⚠️ Special Instructions</h3>
+                                        <div className="instructions-box">
+                                            {reservation.specialInstructions}
+                                        </div>
                                     </div>
                                 )}
-                                <div className="summary-divider" style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                                <div className="summary-row">
-                                    <span className="text-secondary" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>PICKUP</span>
-                                    <span style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>{getPickupLocation()}</span>
-                                </div>
-                                <div className="summary-row">
-                                    <span className="text-secondary" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>DROPOFF</span>
-                                    <span style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>{getDropoffLocation()}</span>
-                                </div>
-                                <div className="summary-divider" style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                                <div className="summary-row" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-success)' }}>
-                                    <span>Total Estimate:</span>
-                                    <span className="font-bold">{getTotal()}</span>
+
+                                {/* Policy Section - Conditional Render */}
+                                {policyText && (
+                                    <div className="email-section">
+                                        <h3>📜 Policy & Terms</h3>
+                                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5', fontSize: '0.9rem', color: '#555', background: '#fafafa', padding: '1rem', borderRadius: '8px', border: '1px solid #eee' }}>
+                                            {policyText}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Footer */}
+                                <div className="email-footer">
+                                    <p style={{ fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.8 }}>
+                                        {settings.footerMessage}
+                                    </p>
+                                    <div className="footer-contact">
+                                        <p>{settings.contactPhone}</p>
+                                        <p>{settings.contactEmail}</p>
+                                        <p>{settings.contactWebsite}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
