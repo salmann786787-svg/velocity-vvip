@@ -828,6 +828,30 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                     </div>
 
                                     <div className="section-panel">
+                                        <h4 className="section-title">Booking Contact (Optional)</h4>
+                                        <div className="new-customer-fields">
+                                            <div className="form-group-custom">
+                                                <label className="form-label">Booked By Name</label>
+                                                <input type="text" className="form-input" value={formData.bookedByName} onChange={(e) => setFormData({ ...formData, bookedByName: e.target.value })} placeholder="Assistant or Agent Name" />
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                <div className="form-group-custom">
+                                                    <label className="form-label">Booked By Phone</label>
+                                                    <input type="tel" className="form-input" value={formData.bookedByPhone} onChange={(e) => setFormData({ ...formData, bookedByPhone: e.target.value })} placeholder="(555) 123-4567" />
+                                                </div>
+                                                <div className="form-group-custom">
+                                                    <label className="form-label">Booked By Email</label>
+                                                    <input type="email" className="form-input" value={formData.bookedByEmail} onChange={(e) => setFormData({ ...formData, bookedByEmail: e.target.value })} placeholder="agent@company.com" />
+                                                </div>
+                                            </div>
+                                            <div className="form-group-custom">
+                                                <label className="form-label">Special Instructions / Requests</label>
+                                                <textarea className="form-input" rows={2} value={formData.specialInstructions} onChange={(e) => setFormData({ ...formData, specialInstructions: e.target.value })} placeholder="e.g. Still water, child seat..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="section-panel">
                                         <h4 className="section-title">Logistics & Asset</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="form-group-custom">

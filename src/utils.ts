@@ -247,28 +247,30 @@ export const hasUnsavedChanges = (currentData: any, initialData: any): boolean =
 };
 
 export const parseReservationPromptAI = async (prompt: string, apiKey: string): Promise<any> => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
+    const currentDate = new Date().toISOString().split('T')[0];
     const systemPrompt = `You are an AI assistant that extracts reservation details from a free-text prompt or email.
+Today's date is: ${currentDate}. If a user says "tomorrow" or "tonight" or "Feb 28", calculate the actual date (YYYY-MM-DD) relative to today.
 Please return ONLY a valid JSON object matching this exact structure, filling in any available information.
 Do not include markdown blocks, just the raw JSON object. Use educated guesses for fields like dates/times.
 If you know it's an airport, try to guess the airline based on flight number or context.
 
 {
   "customerName": "", // Full name
-  "customerEmail": "",
-  "customerPhone": "",
+  "customerEmail": "", // REQUIRED: If ANY email is provided (even an assistant's), put it here
+  "customerPhone": "", // Extract phone numbers
   "customerCompany": "",
-  "pickupDate": "YYYY-MM-DD", // Guess current year if missing
-  "pickupTime": "HH:MM", // 24-hour format
+  "pickupDate": "YYYY-MM-DD", // Must be formatted exactly as YYYY-MM-DD
+  "pickupTime": "HH:MM", // 24-hour format (e.g. 15:00 for 3 PM)
   "vehicle": "Mercedes S-Class", // Mercedes S-Class, Cadillac Escalade, Sprinter Van, etc
   "passengers": 1, // Number
   "hours": 3, // Number
-  "specialInstructions": "",
+  "specialInstructions": "", // Put any requests here (e.g. "still water", "car seat", "meet and greet")
   "bookedByName": "",
   "bookedByEmail": "",
   "bookedByPhone": "",
-  "tripNotes": "",
+  "tripNotes": "", // Put general context here if it doesn't fit in special instructions
   "stops": [ // Must have at least two stops, e.g. pickup and dropoff
     { "id": "1", "location": "", "isAirport": false, "airline": "", "flightNumber": "" },
     { "id": "2", "location": "", "isAirport": false, "airline": "", "flightNumber": "" }
