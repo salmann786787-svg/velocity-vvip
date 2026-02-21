@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { DriverAPI } from '../services/api';
 import './Drivers.css';
 
 interface Driver {
@@ -28,26 +29,47 @@ const Drivers: React.FC = () => {
     });
 
     const [drivers, setDrivers] = useState<Driver[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isEditMode && editingDriverId) {
-            setDrivers(drivers.map(d =>
-                d.id === editingDriverId
-                    ? { ...d, ...formData }
-                    : d
-            ));
-        } else {
-            const newDriver: Driver = {
-                id: drivers.length > 0 ? Math.max(...drivers.map(d => d.id)) + 1 : 1,
-                ...formData,
-                joinedDate: new Date().toISOString().split('T')[0],
-                rating: 5.0,
-                tripsCompleted: 0
-            };
-            setDrivers([newDriver, ...drivers]);
+    const loadDrivers = async () => {
+        try {
+            setIsLoading(true);
+            const data = await DriverAPI.getAll();
+            setDrivers(data);
+        } catch (err) {
+            console.error('Failed to load drivers:', err);
+        } finally {
+            setIsLoading(false);
         }
-        resetForm();
+    };
+
+    useEffect(() => { loadDrivers(); }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (isEditMode && editingDriverId) {
+                await DriverAPI.update(editingDriverId, {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    licenseNumber: formData.licenseNumber,
+                    assignedVehicle: formData.assignedVehicle || null,
+                });
+            } else {
+                await DriverAPI.create({
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    licenseNumber: formData.licenseNumber,
+                    assignedVehicle: formData.assignedVehicle || null,
+                });
+            }
+            await loadDrivers();
+            resetForm();
+        } catch (err: any) {
+            alert(err.message || 'Failed to save driver');
+        }
     };
 
     const resetForm = () => {
@@ -78,9 +100,14 @@ const Drivers: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure you want to delete this driver?')) {
-            setDrivers(drivers.filter(d => d.id !== id));
+            try {
+                await DriverAPI.delete(id);
+                await loadDrivers();
+            } catch (err: any) {
+                alert(err.message || 'Failed to delete driver');
+            }
         }
     };
 
@@ -101,7 +128,11 @@ const Drivers: React.FC = () => {
             </div>
 
             <div className="drivers-grid">
-                {drivers.map(driver => (
+                {isLoading ? (
+                    <p style={{ opacity: 0.5, gridColumn: '1/-1', textAlign: 'center', padding: '2rem' }}>Loading drivers...</p>
+                ) : drivers.length === 0 ? (
+                    <p style={{ opacity: 0.5, gridColumn: '1/-1', textAlign: 'center', padding: '2rem' }}>No drivers found. Add your first driver.</p>
+                ) : drivers.map(driver => (
                     <div key={driver.id} className="driver-card glass-card">
                         <div className="driver-status">
                             <div className="res-status-dot" style={{ color: driver.status === 'available' ? 'var(--color-success)' : driver.status === 'on-trip' ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>

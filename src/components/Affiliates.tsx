@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { AffiliateAPI } from '../services/api';
 import './Affiliates.css';
 
 interface Affiliate {
@@ -28,24 +29,50 @@ const Affiliates: React.FC = () => {
     });
 
     const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isEditMode && editingAffiliateId) {
-            setAffiliates(affiliates.map(a =>
-                a.id === editingAffiliateId
-                    ? { ...a, ...formData }
-                    : a
-            ));
-        } else {
-            const newAffiliate: Affiliate = {
-                id: affiliates.length > 0 ? Math.max(...affiliates.map(a => a.id)) + 1 : 1,
-                ...formData,
-                completedBookings: 0
-            };
-            setAffiliates([newAffiliate, ...affiliates]);
+    const loadAffiliates = async () => {
+        try {
+            setIsLoading(true);
+            const data = await AffiliateAPI.getAll();
+            setAffiliates(data);
+        } catch (err) {
+            console.error('Failed to load affiliates:', err);
+        } finally {
+            setIsLoading(false);
         }
-        resetForm();
+    };
+
+    useEffect(() => { loadAffiliates(); }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (isEditMode && editingAffiliateId) {
+                await AffiliateAPI.update(editingAffiliateId, {
+                    companyName: formData.companyName,
+                    contactName: formData.contactName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    city: formData.city,
+                    commissionRate: formData.commissionRate,
+                    status: formData.status,
+                });
+            } else {
+                await AffiliateAPI.create({
+                    companyName: formData.companyName,
+                    contactName: formData.contactName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    city: formData.city,
+                    commissionRate: formData.commissionRate,
+                });
+            }
+            await loadAffiliates();
+            resetForm();
+        } catch (err: any) {
+            alert(err.message || 'Failed to save affiliate');
+        }
     };
 
     const resetForm = () => {
@@ -78,9 +105,14 @@ const Affiliates: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure you want to remove this affiliate partner?')) {
-            setAffiliates(affiliates.filter(a => a.id !== id));
+            try {
+                await AffiliateAPI.delete(id);
+                await loadAffiliates();
+            } catch (err: any) {
+                alert(err.message || 'Failed to delete affiliate');
+            }
         }
     };
 
@@ -114,7 +146,11 @@ const Affiliates: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {affiliates.map(affiliate => (
+                        {isLoading ? (
+                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Loading affiliates...</td></tr>
+                        ) : affiliates.length === 0 ? (
+                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No affiliates found. Add your first partner.</td></tr>
+                        ) : affiliates.map(affiliate => (
                             <tr key={affiliate.id}>
                                 <td>
                                     <div className="company-cell">
