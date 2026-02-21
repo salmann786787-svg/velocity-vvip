@@ -206,8 +206,8 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                 ) : (
                     <form onSubmit={handleSubmit} style={{ padding: '0 0.5rem', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
                         {/* Left Column: Summary */}
-                        <div className="confirmation-summary section-panel" style={{ height: '70vh', overflowY: 'auto', padding: '1rem', background: '#e0e0e0', borderRadius: '12px' }}>
-                            <div className="email-preview" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', marginBottom: '-20%', width: '125%' }}>
+                        <div className="confirmation-summary section-panel modal-embedded-preview" style={{ height: '70vh', overflowY: 'auto', padding: '0', background: '#e0e0e0', borderRadius: '12px' }}>
+                            <div className="email-preview" style={{ borderRadius: '0', minHeight: '100%', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
                                 {/* Email Header */}
                                 <div className="email-header" style={{ background: `linear-gradient(135deg, ${settings.headerGradientStart}, ${settings.headerGradientEnd})` }}>
                                     <div className="email-logo">
@@ -300,14 +300,14 @@ const ConfirmationPreview: React.FC<ConfirmationPreviewProps> = ({ reservation, 
                                     <h3>📍 Itinerary</h3>
                                     <div className="itinerary">
                                         {reservation.stops.map((stop, index) => (
-                                            <div key={stop.id} className="itinerary-stop" style={{ display: 'flex', gap: '2.5rem' }}>
-                                                <div className="stop-indicator" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '48px' }}>
+                                            <div key={stop.id} className="itinerary-stop">
+                                                <div className="stop-indicator">
                                                     <div className={`stop-icon ${index === 0 ? 'pickup' : index === reservation.stops.length - 1 ? 'destination' : 'intermediate'}`}>
                                                         {index === 0 ? 'A' : index === reservation.stops.length - 1 ? 'B' : index}
                                                     </div>
                                                     {index < reservation.stops.length - 1 && <div className="stop-line" />}
                                                 </div>
-                                                <div className="stop-details" style={{ flex: 1, paddingBottom: '3.5rem' }}>
+                                                <div className="stop-details">
                                                     <div className="stop-label">
                                                         {index === 0 ? 'Pickup Location' : index === reservation.stops.length - 1 ? 'Drop-off Location' : `Stop ${index}`}
                                                     </div>
