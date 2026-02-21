@@ -51,8 +51,10 @@ function Dispatch() {
 
     // Derived Dispatch Data based on currentDate
     const dispatchData = useMemo(() => {
-        const targetDateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
-        const targetEndDateString = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        const toLocalDateStr = (d: Date) =>
+            [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+        const targetDateString = toLocalDateStr(currentDate);
+        const targetEndDateString = toLocalDateStr(endDate);
 
         return reservations
             .filter(r => {
@@ -60,11 +62,14 @@ function Dispatch() {
 
                 // Keep anything matching the pick up date
                 if (!r.pickupDate) return false;
-                // Parse date or compare string
+                // Always parse through Date to handle ISO datetime strings like "2026-02-22T00:00:00.000Z"
+                // Use local date parts to avoid UTC midnight rolling to the previous day
                 const resDate = new Date(r.pickupDate);
-                const resDateStr = !!r.pickupDate && r.pickupDate.includes('-')
-                    ? r.pickupDate // if it's already YYYY-MM-DD
-                    : resDate.toISOString().split('T')[0];
+                const resDateStr = [
+                    resDate.getFullYear(),
+                    String(resDate.getMonth() + 1).padStart(2, '0'),
+                    String(resDate.getDate()).padStart(2, '0')
+                ].join('-');
 
                 if (dateMode === 'day') {
                     return resDateStr === targetDateString;

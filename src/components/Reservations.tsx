@@ -550,7 +550,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
     const updateStatus = async (id: number, status: Reservation['status']) => {
         try {
-            await ReservationAPI.update(id, { status });
+            // Backend stores status as uppercase enum (CONFIRMED, PENDING, etc.)
+            await ReservationAPI.update(id, { status: status.toUpperCase() });
             await loadReservations();
             setNotification({ message: `Status updated to ${status}`, type: 'success' });
         } catch (error: any) {
