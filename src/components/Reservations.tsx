@@ -318,16 +318,36 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         localStorage.setItem('gemini_api_key', aiKey);
         try {
             const parsed = await parseReservationPromptAI(aiPrompt, aiKey);
+
+            // ── Client-side safety net post-processing ──────────────────
+            // 1. Title-case the name regardless of what the model returned
+            const toTitleCase = (s: string) =>
+                s ? s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : s;
+
+            // 2. Normalize vehicle — map common aliases in case the model drifts
+            const vehicleMap: Record<string, string> = {
+                'sprinter': 'Mercedes Sprinter', 'sprinter van': 'Mercedes Sprinter',
+                'van': 'Mercedes Sprinter', 'mercedes van': 'Mercedes Sprinter',
+                'mercedes sprinter': 'Mercedes Sprinter',
+                's-class': 'Mercedes S-Class', 's class': 'Mercedes S-Class', 'sedan': 'Mercedes S-Class',
+                'escalade': 'Cadillac Escalade', 'suv': 'Cadillac Escalade',
+                'suburban': 'Chevy Suburban', 'chevy suburban': 'Chevy Suburban',
+                'limo': 'Limousine', 'limousine': 'Limousine', 'stretch': 'Limousine',
+                'bus': 'Charter Bus', 'coach': 'Charter Bus', 'charter bus': 'Charter Bus',
+            };
+            const rawVehicle = (parsed.vehicle || '').toLowerCase().trim();
+            const normalizedVehicle = vehicleMap[rawVehicle] || parsed.vehicle || 'Mercedes S-Class';
+
             setCustomerMode('create');
             setFormData(prev => ({
                 ...prev,
-                customerName: parsed.customerName || prev.customerName,
+                customerName: toTitleCase(parsed.customerName) || prev.customerName,
                 customerEmail: parsed.customerEmail || prev.customerEmail,
                 customerPhone: parsed.customerPhone || prev.customerPhone,
                 customerCompany: parsed.customerCompany || prev.customerCompany,
                 pickupDate: parsed.pickupDate || prev.pickupDate,
                 pickupTime: parsed.pickupTime || prev.pickupTime,
-                vehicle: parsed.vehicle || prev.vehicle,
+                vehicle: normalizedVehicle,
                 passengers: parsed.passengers || prev.passengers,
                 hours: parsed.hours || prev.hours,
                 specialInstructions: parsed.specialInstructions || prev.specialInstructions,
@@ -336,6 +356,11 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                 bookedByPhone: parsed.bookedByPhone || prev.bookedByPhone,
                 tripNotes: parsed.tripNotes || prev.tripNotes
             }));
+
+            // 3. Warn if no email was found
+            if (!parsed.customerEmail) {
+                setNotification({ message: '⚠️ No email found in prompt — please enter one manually before saving.', type: 'info' });
+            }
 
             if (parsed.stops && parsed.stops.length > 0) {
                 const newStops = parsed.stops.map((s: any, i: number) => ({

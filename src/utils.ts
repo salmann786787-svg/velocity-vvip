@@ -253,25 +253,41 @@ export const parseReservationPromptAI = async (prompt: string, apiKey: string): 
     const systemPrompt = `You are an AI assistant that extracts reservation details from a free-text prompt or email.
 Today's date is: ${currentDate}. If a user says "tomorrow" or "tonight" or "Feb 28", calculate the actual date (YYYY-MM-DD) relative to today.
 Please return ONLY a valid JSON object matching this exact structure, filling in any available information.
-Do not include markdown blocks, just the raw JSON object. Use educated guesses for fields like dates/times.
-If you know it's an airport, try to guess the airline based on flight number or context.
+Do not include markdown blocks, just the raw JSON object.
+
+IMPORTANT RULES:
+1. customerName: ALWAYS Title Case the name (e.g. "david smith" → "David Smith", "JOHN DOE" → "John Doe").
+2. vehicle: Match to EXACTLY one of these options using the alias table below. Default to "Mercedes S-Class" ONLY if no vehicle is mentioned.
+   VEHICLE ALIAS TABLE (input → exact output value):
+   - "s-class", "s class", "sedan", "mercedes sedan" → "Mercedes S-Class"
+   - "escalade", "suv", "cadillac" → "Cadillac Escalade"
+   - "sprinter", "sprinter van", "van", "mercedes van", "mercedes sprinter" → "Mercedes Sprinter"
+   - "suburban", "chevy suburban", "gmc" → "Chevy Suburban"
+   - "limo", "limousine", "stretch" → "Limousine"
+   - "coach", "bus", "charter bus", "motor coach" → "Charter Bus"
+   The output must be the EXACT string from the right side of the table above.
+3. pickupDate: Must be YYYY-MM-DD format.
+4. pickupTime: Must be 24-hour HH:MM format.
+5. If no email is provided, leave customerEmail as an empty string "" — do NOT fabricate one.
+6. Detect airport stops: if a stop mentions an airport, airline, or flight number, set isAirport: true and extract airline/flightNumber.
+7. passengers: Extract the passenger count as a number.
 
 {
-  "customerName": "", // Full name
-  "customerEmail": "", // REQUIRED: If ANY email is provided (even an assistant's), put it here
-  "customerPhone": "", // Extract phone numbers
+  "customerName": "",
+  "customerEmail": "",
+  "customerPhone": "",
   "customerCompany": "",
-  "pickupDate": "YYYY-MM-DD", // Must be formatted exactly as YYYY-MM-DD
-  "pickupTime": "HH:MM", // 24-hour format (e.g. 15:00 for 3 PM)
-  "vehicle": "Mercedes S-Class", // Mercedes S-Class, Cadillac Escalade, Sprinter Van, etc
-  "passengers": 1, // Number
-  "hours": 3, // Number
-  "specialInstructions": "", // Put any requests here (e.g. "still water", "car seat", "meet and greet")
+  "pickupDate": "YYYY-MM-DD",
+  "pickupTime": "HH:MM",
+  "vehicle": "",
+  "passengers": 1,
+  "hours": 0,
+  "specialInstructions": "",
   "bookedByName": "",
   "bookedByEmail": "",
   "bookedByPhone": "",
-  "tripNotes": "", // Put general context here if it doesn't fit in special instructions
-  "stops": [ // Must have at least two stops, e.g. pickup and dropoff
+  "tripNotes": "",
+  "stops": [
     { "id": "1", "location": "", "isAirport": false, "airline": "", "flightNumber": "" },
     { "id": "2", "location": "", "isAirport": false, "airline": "", "flightNumber": "" }
   ]
