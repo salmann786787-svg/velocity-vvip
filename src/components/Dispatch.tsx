@@ -26,8 +26,11 @@ function Dispatch() {
     const dateInputRef = useRef<HTMLInputElement>(null);
     const endDateInputRef = useRef<HTMLInputElement>(null);
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
-    const [endDate, setEndDate] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 7)));
-    const [dateMode, setDateMode] = useState<'day' | 'range' | 'all'>('day');
+    const [endDate, setEndDate] = useState<Date>(new Date());
+    const [dateMode, setDateMode] = useState<'day' | 'range'>('day');
+    // Staged state for range mode — only applied when user clicks Apply
+    const [pendingStart, setPendingStart] = useState<Date>(new Date());
+    const [pendingEnd, setPendingEnd] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 7)));
     const [isLoading, setIsLoading] = useState(true);
 
     // Live Data from API
@@ -58,8 +61,6 @@ function Dispatch() {
 
         return reservations
             .filter(r => {
-                if (dateMode === 'all') return true;
-
                 // Keep anything matching the pick up date
                 if (!r.pickupDate) return false;
                 // Reservation pickupDates are stored as UTC midnight (e.g. "2026-02-22T00:00:00.000Z").
@@ -120,16 +121,39 @@ function Dispatch() {
         return dispatchData.map(r => ({ ...r, ...localOverrides[r.id] }));
     }, [dispatchData, localOverrides]);
 
+    const applyPreset = (preset: 'today' | 'week' | 'month') => {
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        if (preset === 'today') {
+            setDateMode('day');
+            setCurrentDate(today);
+        } else if (preset === 'week') {
+            const end = new Date(today);
+            end.setDate(end.getDate() + 6);
+            setDateMode('range');
+            setCurrentDate(today);
+            setEndDate(end);
+            setPendingStart(today);
+            setPendingEnd(end);
+        } else if (preset === 'month') {
+            const end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 12, 0, 0);
+            setDateMode('range');
+            setCurrentDate(today);
+            setEndDate(end);
+            setPendingStart(today);
+            setPendingEnd(end);
+        }
+    };
+
+    const applyRange = () => {
+        setCurrentDate(pendingStart);
+        setEndDate(pendingEnd);
+    };
+
     const changeDate = (days: number) => {
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() + days);
         setCurrentDate(newDate);
-
-        if (dateMode === 'range') {
-            const newEndDate = new Date(endDate);
-            newEndDate.setDate(newEndDate.getDate() + days);
-            setEndDate(newEndDate);
-        }
     };
 
     const formatDate = (date: Date) => {
@@ -254,71 +278,64 @@ Driver: ${reservation.driver || 'Unassigned'}
         <div className="dispatch-container fade-in">
             <h2 style={{ fontSize: '1.8rem', fontWeight: '700', margin: '0 0 1rem 0.5rem' }}>Daily Dispatch</h2>
 
-            {/* ... (Controls remain the same) ... */}
+            {/* Controls */}
             <div className="dispatch-controls glass-panel">
-                <div className="control-group left">
+                <div className="control-group left" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
                     <select
                         className="form-input"
-                        style={{ width: 'auto', padding: '0.4rem', border: '1px solid var(--color-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}
+                        style={{ width: 'auto', padding: '0.4rem 0.6rem', border: '1px solid var(--color-border)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}
                         value={dateMode}
                         onChange={(e) => setDateMode(e.target.value as any)}
                     >
                         <option value="day">Single Day</option>
                         <option value="range">Date Range</option>
-                        <option value="all">All Dates</option>
                     </select>
+                    {/* Quick presets */}
+                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('today')}>Today</button>
+                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('week')}>This Week</button>
+                    <button className="icon-btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }} onClick={() => applyPreset('month')}>This Month</button>
                 </div>
 
                 <div className="control-group center" style={{ gap: '0.75rem' }}>
-                    {dateMode !== 'all' && (
+                    {dateMode === 'day' && (
                         <button className="icon-btn" onClick={() => changeDate(-1)}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                         </button>
                     )}
 
-                    {dateMode === 'all' ? (
-                        <div className="date-display">
-                            <span className="icon-calendar">📅</span> All Reservations
-                        </div>
-                    ) : (
-                        <div
-                            className="date-display"
-                            onClick={() => {
-                                if (dateInputRef.current) {
-                                    try {
-                                        dateInputRef.current.showPicker();
-                                    } catch (e) {
-                                        dateInputRef.current.click();
+                    {/* Start / single date picker */}
+                    <div
+                        className="date-display"
+                        onClick={() => {
+                            if (dateInputRef.current) {
+                                try { dateInputRef.current.showPicker(); } catch { dateInputRef.current.click(); }
+                            }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <span className="icon-calendar">📅</span>
+                        {dateMode === 'range' ? 'Start: ' : ''}
+                        {formatDate(dateMode === 'range' ? pendingStart : currentDate)}
+                        <input
+                            ref={dateInputRef}
+                            type="date"
+                            value={`${(dateMode === 'range' ? pendingStart : currentDate).getFullYear()}-${String((dateMode === 'range' ? pendingStart : currentDate).getMonth() + 1).padStart(2, '0')}-${String((dateMode === 'range' ? pendingStart : currentDate).getDate()).padStart(2, '0')}`}
+                            onChange={(e) => {
+                                if (e.target.value) {
+                                    const [y, m, d] = e.target.value.split('-').map(Number);
+                                    const newDate = new Date(y, m - 1, d, 12, 0, 0);
+                                    if (dateMode === 'range') {
+                                        setPendingStart(newDate);
+                                    } else {
+                                        setCurrentDate(newDate); // Single day: apply immediately
                                     }
                                 }
                             }}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <span className="icon-calendar">📅</span>
-                            {dateMode === 'range' ? 'Start: ' : ''}{formatDate(currentDate)}
-                            <input
-                                ref={dateInputRef}
-                                type="date"
-                                value={`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`}
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        const [y, m, d] = e.target.value.split('-').map(Number);
-                                        // Set to noon to avoid timezone rolling issues
-                                        setCurrentDate(new Date(y, m - 1, d, 12, 0, 0));
-                                    }
-                                }}
-                                style={{
-                                    visibility: 'hidden',
-                                    position: 'absolute',
-                                    width: 0,
-                                    height: 0,
-                                    bottom: 0,
-                                    left: '50%'
-                                }}
-                            />
-                        </div>
-                    )}
+                            style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
+                        />
+                    </div>
 
+                    {/* End date picker (range mode only) */}
                     {dateMode === 'range' && (
                         <>
                             <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>to</span>
@@ -326,34 +343,38 @@ Driver: ${reservation.driver || 'Unassigned'}
                                 className="date-display"
                                 onClick={() => {
                                     if (endDateInputRef.current) {
-                                        try {
-                                            endDateInputRef.current.showPicker();
-                                        } catch (e) {
-                                            endDateInputRef.current.click();
-                                        }
+                                        try { endDateInputRef.current.showPicker(); } catch { endDateInputRef.current.click(); }
                                     }
                                 }}
                                 style={{ cursor: 'pointer' }}
                             >
                                 <span className="icon-calendar">📅</span>
-                                End: {formatDate(endDate)}
+                                End: {formatDate(pendingEnd)}
                                 <input
                                     ref={endDateInputRef}
                                     type="date"
-                                    value={`${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`}
+                                    value={`${pendingEnd.getFullYear()}-${String(pendingEnd.getMonth() + 1).padStart(2, '0')}-${String(pendingEnd.getDate()).padStart(2, '0')}`}
                                     onChange={(e) => {
                                         if (e.target.value) {
                                             const [y, m, d] = e.target.value.split('-').map(Number);
-                                            setEndDate(new Date(y, m - 1, d, 12, 0, 0));
+                                            setPendingEnd(new Date(y, m - 1, d, 12, 0, 0));
                                         }
                                     }}
                                     style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0, bottom: 0, left: '50%' }}
                                 />
                             </div>
+                            {/* Apply button — only commits range to filter */}
+                            <button
+                                className="btn-go"
+                                onClick={applyRange}
+                                style={{ padding: '0.4rem 1rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem' }}
+                            >
+                                Apply
+                            </button>
                         </>
                     )}
 
-                    {dateMode !== 'all' && (
+                    {dateMode === 'day' && (
                         <button className="icon-btn" onClick={() => changeDate(1)}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </button>
@@ -815,13 +836,14 @@ Driver: ${reservation.driver || 'Unassigned'}
             {/* Footer / Summary Strip */}
             <div className="dispatch-footer">
                 <div className="status-legend">
+                    <span className="legend-item"><span className="dot" style={{ background: 'var(--color-text-muted)' }}></span> Unassigned ({displayDispatchData.filter(d => d.status === 'Unassigned').length})</span>
                     <span className="legend-item"><span className="dot dot-dispatched"></span> Dispatched ({displayDispatchData.filter(d => d.status === 'Dispatched').length})</span>
                     <span className="legend-item"><span className="dot dot-live"></span> Live ({displayDispatchData.filter(d => d.status === 'Customer In').length})</span>
                     <span className="legend-item"><span className="dot dot-done"></span> Done ({displayDispatchData.filter(d => d.status === 'Done').length})</span>
                     <span className="legend-item"><span className="dot dot-cancelled"></span> Cancelled ({displayDispatchData.filter(d => d.status === 'Cancelled').length})</span>
                 </div>
                 <div className="records-count">
-                    Showing {displayDispatchData.length} Records
+                    Showing {displayDispatchData.length} Record{displayDispatchData.length !== 1 ? 's' : ''}
                 </div>
             </div>
         </div>
