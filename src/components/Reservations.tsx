@@ -10,7 +10,8 @@ import {
     loadDraftFromLocalStorage,
     clearDraftFromLocalStorage,
     hasUnsavedChanges,
-    formatPhoneNumber
+    formatPhoneNumber,
+    parseReservationPromptAI
 } from '../utils';
 import { ReservationAPI } from '../services/api';
 
@@ -31,6 +32,12 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
     const [initialFormState, setInitialFormState] = useState<any>(null);
+
+    // AI Feature States
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isParsingAI, setIsParsingAI] = useState(false);
+    const [aiKey, setAiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+    const [showAiPanel, setShowAiPanel] = useState(false);
 
     // Mock customer database
     const [customers] = useState<Customer[]>([]);
@@ -231,6 +238,59 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         setShowModal(true);
         setModalState('default');
         setValidationErrors([]);
+    };
+
+    const handleAiParse = async () => {
+        if (!aiKey) {
+            alert('Please enter a Gemini API Key to use this feature.');
+            return;
+        }
+        if (!aiPrompt) return;
+
+        setIsParsingAI(true);
+        localStorage.setItem('gemini_api_key', aiKey);
+        try {
+            const parsed = await parseReservationPromptAI(aiPrompt, aiKey);
+            setCustomerMode('create');
+            setFormData(prev => ({
+                ...prev,
+                customerName: parsed.customerName || prev.customerName,
+                customerEmail: parsed.customerEmail || prev.customerEmail,
+                customerPhone: parsed.customerPhone || prev.customerPhone,
+                customerCompany: parsed.customerCompany || prev.customerCompany,
+                pickupDate: parsed.pickupDate || prev.pickupDate,
+                pickupTime: parsed.pickupTime || prev.pickupTime,
+                vehicle: parsed.vehicle || prev.vehicle,
+                passengers: parsed.passengers || prev.passengers,
+                hours: parsed.hours || prev.hours,
+                specialInstructions: parsed.specialInstructions || prev.specialInstructions,
+                bookedByName: parsed.bookedByName || prev.bookedByName,
+                bookedByEmail: parsed.bookedByEmail || prev.bookedByEmail,
+                bookedByPhone: parsed.bookedByPhone || prev.bookedByPhone,
+                tripNotes: parsed.tripNotes || prev.tripNotes
+            }));
+
+            if (parsed.stops && parsed.stops.length > 0) {
+                const newStops = parsed.stops.map((s: any, i: number) => ({
+                    id: String(i + 1),
+                    location: s.location || '',
+                    isAirport: s.isAirport || false,
+                    airline: s.airline || '',
+                    flightNumber: s.flightNumber || ''
+                }));
+                while (newStops.length < 2) {
+                    newStops.push({ id: String(newStops.length + 1), location: '', isAirport: false, airline: '', flightNumber: '' });
+                }
+                setStops(newStops);
+            }
+
+            setAiPrompt('');
+            setShowAiPanel(false);
+        } catch (error: any) {
+            alert(error.message || 'Failed to parse AI prompt');
+        } finally {
+            setIsParsingAI(false);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -669,6 +729,39 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                             )}
 
                             <form onSubmit={handleSubmit} className="reservation-form">
+                                {!isEditMode && (
+                                    <div className="section-panel" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, hsla(280, 100%, 70%, 0.1) 0%, hsla(230, 20%, 10%, 0.8) 100%)', borderColor: 'hsla(280, 100%, 70%, 0.3)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAiPanel ? '1.5rem' : '0' }}>
+                                            <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)' }}>
+                                                ✨ AI Text Auto-Parser
+                                            </h4>
+                                            <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowAiPanel(!showAiPanel)}>
+                                                {showAiPanel ? 'Close AI' : 'Autofill with Text'}
+                                            </button>
+                                        </div>
+                                        {showAiPanel && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                                                <div className="form-group-custom">
+                                                    <label className="form-label">Gemini AI Key</label>
+                                                    <input type="password" placeholder="AI API Key (Saved locally)" className="form-input" value={aiKey} onChange={e => setAiKey(e.target.value)} />
+                                                </div>
+                                                <div className="form-group-custom">
+                                                    <label className="form-label">Client Message / Email Content</label>
+                                                    <textarea
+                                                        className="form-input"
+                                                        style={{ minHeight: '120px', resize: 'vertical' }}
+                                                        placeholder="e.g. Need an S-Class for John Doe (john@example.com) tomorrow at 5PM from LAX to Beverly Hills Hotel..."
+                                                        value={aiPrompt}
+                                                        onChange={e => setAiPrompt(e.target.value)}
+                                                    />
+                                                </div>
+                                                <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={handleAiParse} disabled={isParsingAI || !aiPrompt || !aiKey}>
+                                                    {isParsingAI ? 'Parsing with AI...' : '✨ Generate Fields'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="form-grid">
                                     <div className="section-panel">
                                         <h4 className="section-title">Passenger Information</h4>

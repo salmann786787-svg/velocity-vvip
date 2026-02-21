@@ -1,7 +1,7 @@
 // API Service Layer for Velocity VVIP
 // Connects the React frontend to the Express backend
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = 'https://velocity-vvip.onrender.com/api';
 
 // ─── Auth Helpers ────────────────────────────────────────────────────────────
 
