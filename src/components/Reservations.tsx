@@ -73,6 +73,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     const [previewData, setPreviewData] = useState<any>(null);
     const [customerMode, setCustomerMode] = useState<'select' | 'create'>('select');
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState<number | null>(null);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -473,6 +475,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             { id: '2', location: '', isAirport: false }
         ]);
         setSelectedCustomerId(null);
+        setCustomerSearch('');
+        setCustomerDropdownOpen(false);
         setCustomerMode('select');
         setIsEditMode(false);
         setEditingReservationId(null);
@@ -917,29 +921,97 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                         customerCompany: ''
                                                     });
                                                     setSelectedCustomerId(null);
+                                                    setCustomerSearch('');
                                                 }
                                             }}>Select Existing</button>
                                             <button type="button" className={`btn ${customerMode === 'create' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={() => {
                                                 setCustomerMode('create');
                                                 setSelectedCustomerId(null);
+                                                setCustomerSearch('');
                                             }}>New Customer</button>
                                         </div>
 
                                         {customerMode === 'select' ? (
-                                            <div className="form-group-custom">
+                                            <div className="form-group-custom" style={{ position: 'relative' }}>
                                                 <label className="form-label">Search Customers</label>
-                                                <select className="form-select" value={selectedCustomerId || ''} onChange={(e) => handleCustomerSelect(parseInt(e.target.value))} required>
-                                                    <option value="">-- Select a customer --</option>
-                                                    {customers.map(customer => (
-                                                        <option key={customer.id} value={customer.id}>{customer.name} {customer.company ? `(${customer.company})` : ''}</option>
-                                                    ))}
-                                                </select>
+                                                <div style={{ position: 'relative' }}>
+                                                    <input
+                                                        type="text"
+                                                        className="form-input"
+                                                        placeholder="Type name, email or company..."
+                                                        value={customerSearch}
+                                                        onChange={e => {
+                                                            setCustomerSearch(e.target.value);
+                                                            setCustomerDropdownOpen(true);
+                                                            if (!e.target.value) {
+                                                                setSelectedCustomerId(null);
+                                                                setFormData({ ...formData, customerName: '', customerEmail: '', customerPhone: '', customerCompany: '' });
+                                                            }
+                                                        }}
+                                                        onFocus={() => setCustomerDropdownOpen(true)}
+                                                        onBlur={() => setTimeout(() => setCustomerDropdownOpen(false), 150)}
+                                                        autoComplete="off"
+                                                        required={!selectedCustomerId}
+                                                        style={selectedCustomerId ? { borderColor: 'var(--color-success)' } : {}}
+                                                    />
+                                                    {selectedCustomerId && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setSelectedCustomerId(null); setCustomerSearch(''); setFormData({ ...formData, customerName: '', customerEmail: '', customerPhone: '', customerCompany: '' }); }}
+                                                            style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
+                                                            title="Clear selection"
+                                                        >✕</button>
+                                                    )}
+                                                </div>
+                                                {customerDropdownOpen && customerSearch.length > 0 && (() => {
+                                                    const q = customerSearch.toLowerCase();
+                                                    const results = customers.filter(c =>
+                                                        c.name.toLowerCase().includes(q) ||
+                                                        (c.email || '').toLowerCase().includes(q) ||
+                                                        (c.company || '').toLowerCase().includes(q) ||
+                                                        (c.phone || '').includes(q)
+                                                    ).slice(0, 8);
+                                                    return results.length > 0 ? (
+                                                        <div style={{
+                                                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+                                                            background: 'rgba(18,18,28,0.98)', border: '1px solid rgba(180,83,233,0.4)',
+                                                            borderRadius: '10px', marginTop: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            {results.map(c => (
+                                                                <div
+                                                                    key={c.id}
+                                                                    onMouseDown={() => { handleCustomerSelect(c.id); setCustomerSearch(c.name + (c.company ? ` (${c.company})` : '')); setCustomerDropdownOpen(false); }}
+                                                                    style={{
+                                                                        padding: '0.65rem 1rem', cursor: 'pointer',
+                                                                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                        transition: 'background 0.15s'
+                                                                    }}
+                                                                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(180,83,233,0.15)')}
+                                                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                                                >
+                                                                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>{c.name}</div>
+                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                                                        {[c.company, c.email, c.phone].filter(Boolean).join(' · ')}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{
+                                                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+                                                            background: 'rgba(18,18,28,0.98)', border: '1px solid rgba(255,255,255,0.1)',
+                                                            borderRadius: '10px', marginTop: '4px', padding: '0.75rem 1rem',
+                                                            fontSize: '0.85rem', color: 'var(--color-text-muted)'
+                                                        }}>No customers found for "{customerSearch}"</div>
+                                                    );
+                                                })()}
                                                 {selectedCustomerId && (
-                                                    <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Name:</strong> {formData.customerName}</div>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Email:</strong> {formData.customerEmail}</div>
-                                                        <div style={{ marginBottom: '0.5rem' }}><strong>Phone:</strong> {formData.customerPhone}</div>
-                                                        {formData.customerCompany && <div><strong>Company:</strong> {formData.customerCompany}</div>}
+                                                    <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', fontSize: '0.82rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                                                        <div><span style={{ opacity: 0.6 }}>Name</span><br /><strong>{formData.customerName}</strong></div>
+                                                        <div><span style={{ opacity: 0.6 }}>Phone</span><br /><strong>{formData.customerPhone}</strong></div>
+                                                        <div><span style={{ opacity: 0.6 }}>Email</span><br /><strong>{formData.customerEmail}</strong></div>
+                                                        {formData.customerCompany && <div><span style={{ opacity: 0.6 }}>Company</span><br /><strong>{formData.customerCompany}</strong></div>}
                                                     </div>
                                                 )}
                                             </div>
