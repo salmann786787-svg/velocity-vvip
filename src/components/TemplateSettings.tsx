@@ -33,9 +33,30 @@ const defaultSettings: TemplateSettingsData = {
     policyAffiliate: 'COMMISSION: 10% commission on base rate. PAYMENT: Net 30 days. STANDARDS: Driver must be in full suit. Vehicle must be 2023 or newer model.'
 };
 
+const TIMEZONES = [
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT) — Los Angeles, Seattle' },
+    { value: 'America/Denver', label: 'Mountain Time (MT) — Denver, Phoenix' },
+    { value: 'America/Chicago', label: 'Central Time (CT) — Chicago, Dallas, Houston' },
+    { value: 'America/New_York', label: 'Eastern Time (ET) — New York, Miami, Atlanta' },
+    { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' },
+    { value: 'America/Toronto', label: 'Eastern Time — Toronto' },
+    { value: 'America/Vancouver', label: 'Pacific Time — Vancouver' },
+    { value: 'America/Chicago', label: 'Central Time — Chicago' },
+    { value: 'Europe/London', label: 'GMT/BST — London' },
+    { value: 'Europe/Paris', label: 'CET — Paris, Berlin, Rome, Madrid' },
+    { value: 'Europe/Dubai', label: 'GST — Dubai, Abu Dhabi' },
+    { value: 'Asia/Singapore', label: 'SGT — Singapore, Kuala Lumpur' },
+    { value: 'Asia/Tokyo', label: 'JST — Tokyo, Osaka' },
+    { value: 'Australia/Sydney', label: 'AEDT — Sydney, Melbourne' },
+];
+
 const TemplateSettings: React.FC = () => {
     const [settings, setSettings] = useState<TemplateSettingsData>(defaultSettings);
     const [saved, setSaved] = useState(false);
+    const [timezone, setTimezone] = useState(
+        () => localStorage.getItem('appTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone
+    );
 
     useEffect(() => {
         const stored = localStorage.getItem('confirmationTemplateSettings');
@@ -66,6 +87,7 @@ const TemplateSettings: React.FC = () => {
 
     const handleSave = () => {
         localStorage.setItem('confirmationTemplateSettings', JSON.stringify(settings));
+        localStorage.setItem('appTimezone', timezone);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
     };
@@ -121,6 +143,48 @@ const TemplateSettings: React.FC = () => {
                                 onChange={handleLogoUpload}
                                 style={{ display: 'none' }}
                             />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Operational Config — Timezone */}
+                <div className="settings-section glass-card" style={{ gridColumn: 'span 2' }}>
+                    <h3>🌐 Operational Config</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="form-group">
+                            <label className="form-label">Business Timezone</label>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+                                Used by Dashboard, Dispatch, and all date/time displays to correctly calculate "Today," "This Week," etc.
+                            </p>
+                            <select
+                                className="form-select"
+                                value={timezone}
+                                onChange={e => { setTimezone(e.target.value); setSaved(false); }}
+                            >
+                                {TIMEZONES.map(tz => (
+                                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                                ))}
+                            </select>
+                            <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: '0.5rem', fontFamily: 'var(--font-mono)' }}>
+                                Current: {new Date().toLocaleString('en-US', { timeZone: timezone, timeZoneName: 'short' })}
+                            </p>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Detected Browser Timezone</label>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+                                Your browser reports this timezone automatically.
+                            </p>
+                            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                                {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-outline"
+                                style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.4rem 1rem' }}
+                                onClick={() => { setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone); setSaved(false); }}
+                            >
+                                Use Browser Timezone
+                            </button>
                         </div>
                     </div>
                 </div>

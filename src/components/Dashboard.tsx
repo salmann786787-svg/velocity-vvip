@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ReservationAPI } from '../services/api';
 import './Dashboard.css';
 
@@ -25,31 +25,49 @@ function Dashboard({ onNavigate }: DashboardProps) {
         fetchDashboardData();
     }, []);
 
-    // Date computation helpers
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
-    const startOfWeek = startOfDay - now.getDay() * 24 * 60 * 60 * 1000;
-    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000 - 1;
+    // ─── Timezone-aware date helpers ─────────────────────────────────────
+    // Reservations are stored as UTC midnight (e.g. 2026-02-22T00:00:00.000Z),
+    // meaning the date part IS the intended date (no timezone shift needed).
+    // We extract the UTC date string from pickupDate and compare it to today
+    // formatted in the user's chosen timezone.
 
-    // Derived stats
+    const userTz = localStorage.getItem('appTimezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const toTzDateStr = (d: Date) =>
+        d.toLocaleDateString('en-CA', { timeZone: userTz }); // en-CA gives YYYY-MM-DD
+
+    const toUTCDateStr = (d: Date) =>
+        [d.getUTCFullYear(), String(d.getUTCMonth() + 1).padStart(2, '0'), String(d.getUTCDate()).padStart(2, '0')].join('-');
+
+    const now = new Date();
+    const todayStr = toTzDateStr(now);
+    const tomorrowDate = new Date(now);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+    // Week range: Mon–Sun in user's timezone
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    const weekStartStr = toTzDateStr(weekStart);
+    const weekEndStr = toTzDateStr(weekEnd);
+
+    // Derived stats — compare pickupDate's UTC date against today in user's TZ
     const tripsThisWeek = reservations.filter(res => {
-        const time = new Date(res.pickupDate).getTime();
-        return time >= startOfWeek && time <= endOfWeek;
+        const d = toUTCDateStr(new Date(res.pickupDate));
+        return d >= weekStartStr && d <= weekEndStr;
     }).length;
 
-    const revenueToday = reservations.filter(res => {
-        const time = new Date(res.pickupDate).getTime();
-        return time >= startOfDay && time <= endOfDay;
-    }).reduce((sum, res) => sum + (res.total || 0), 0);
+    const revenueToday = reservations
+        .filter(res => toUTCDateStr(new Date(res.pickupDate)) === todayStr)
+        .reduce((sum, res) => sum + (res.total || 0), 0);
 
-    const pendingCount = reservations.filter(res => res.status === 'PENDING').length;
+    const pendingCount = reservations.filter(res => res.status === 'PENDING' || res.status === 'pending').length;
 
     const todaySchedule = reservations
-        .filter(res => {
-            const time = new Date(res.pickupDate).getTime();
-            return time >= startOfDay && time <= endOfDay;
-        })
+        .filter(res => toUTCDateStr(new Date(res.pickupDate)) === todayStr)
         .sort((a, b) => a.pickupTime.localeCompare(b.pickupTime))
         .map(res => ({
             id: res.id,
