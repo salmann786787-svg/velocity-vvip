@@ -258,12 +258,21 @@
 .res-footer {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-top: auto;
     padding-top: 2rem;
     border-top: 1px solid hsla(0, 0%, 100%, 0.05);
     position: relative;
     z-index: 10;
+}
+
+.res-footer>div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .res-price {

@@ -741,7 +741,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                             <div className="res-main-details">
                                 <div className="res-detail-item">
                                     <span className="res-label">Pickup</span>
-                                    <span className="res-value">{reservation.pickupDate} @ {reservation.pickupTime}</span>
+                                    <span className="res-value">{reservation.pickupDate ? (() => { const d = new Date(reservation.pickupDate); return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`; })() : ''} @ {reservation.pickupTime}</span>
                                 </div>
                                 <div className="res-detail-item">
                                     <span className="res-label">Vehicle</span>

@@ -62,13 +62,13 @@ function Dispatch() {
 
                 // Keep anything matching the pick up date
                 if (!r.pickupDate) return false;
-                // Always parse through Date to handle ISO datetime strings like "2026-02-22T00:00:00.000Z"
-                // Use local date parts to avoid UTC midnight rolling to the previous day
+                // Reservation pickupDates are stored as UTC midnight (e.g. "2026-02-22T00:00:00.000Z").
+                // We MUST use UTC date parts — local parts would shift the day for users behind UTC
                 const resDate = new Date(r.pickupDate);
                 const resDateStr = [
-                    resDate.getFullYear(),
-                    String(resDate.getMonth() + 1).padStart(2, '0'),
-                    String(resDate.getDate()).padStart(2, '0')
+                    resDate.getUTCFullYear(),
+                    String(resDate.getUTCMonth() + 1).padStart(2, '0'),
+                    String(resDate.getUTCDate()).padStart(2, '0')
                 ].join('-');
 
                 if (dateMode === 'day') {
@@ -417,7 +417,7 @@ Driver: ${reservation.driver || 'Unassigned'}
                                     </span>
                                 </td>
                                 <td>{row.notes && <span className="note-icon">📝</span>}</td>
-                                <td className="font-mono">{row.pickupDate}</td>
+                                <td className="font-mono">{row.pickupDate ? (() => { const d = new Date(row.pickupDate); return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`; })() : ''}</td>
                                 <td className="font-mono font-bold text-accent">{row.pickupTime}</td>
                                 <td>
                                     <span className={`type-badge ${row.type === 'INH' ? 'inh' : 'fot'}`}>
