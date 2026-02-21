@@ -13,7 +13,7 @@ import {
     formatPhoneNumber,
     parseReservationPromptAI
 } from '../utils';
-import { ReservationAPI } from '../services/api';
+import { ReservationAPI, CustomerAPI } from '../services/api';
 
 const TypewriterText = ({ text }: { text: string }) => {
     const [displayedText, setDisplayedText] = useState('');
@@ -86,8 +86,14 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     const [showAiPanel, setShowAiPanel] = useState(false);
     const [aiTaskStatus, setAiTaskStatus] = useState<'idle' | 'parsing' | 'success'>('idle');
 
-    // Mock customer database
-    const [customers] = useState<Customer[]>([]);
+    // Real customer database from API
+    const [customers, setCustomers] = useState<Customer[]>([]);
+
+    useEffect(() => {
+        CustomerAPI.getAll()
+            .then((data: any[]) => setCustomers(data))
+            .catch((err: any) => console.error('Failed to load customers for selector:', err));
+    }, []);
 
     const [formData, setFormData] = useState({
         customerName: '',

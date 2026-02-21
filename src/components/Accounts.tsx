@@ -30,21 +30,24 @@ function Accounts() {
 
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     const loadCustomers = async () => {
         try {
             setIsLoading(true);
+            setLoadError(null);
             const data = await CustomerAPI.getAll();
-            // Map API response: totalBookings from reservations array, totalSpent from reservations totals
             const mapped: Customer[] = data.map((c: any) => ({
                 ...c,
                 totalBookings: c.reservations?.length ?? 0,
                 totalSpent: c.reservations?.reduce((sum: number, r: any) => sum + (r.total ?? 0), 0) ?? 0,
             }));
             setCustomers(mapped);
-        } catch (err) {
-            console.error('Failed to load customers:', err);
+        } catch (err: any) {
+            const msg = err.message || 'Failed to load customers';
+            setLoadError(msg);
+            console.error('Accounts loadCustomers error:', err);
         } finally {
             setIsLoading(false);
         }
@@ -190,6 +193,11 @@ function Accounts() {
                         <tbody>
                             {isLoading ? (
                                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Loading customers...</td></tr>
+                            ) : loadError ? (
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-danger)' }}>
+                                    ⚠️ {loadError} &nbsp;
+                                    <button className="btn btn-sm btn-outline" onClick={loadCustomers}>Retry</button>
+                                </td></tr>
                             ) : customers.length === 0 ? (
                                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No customers found</td></tr>
                             ) : customers.map((customer) => (
