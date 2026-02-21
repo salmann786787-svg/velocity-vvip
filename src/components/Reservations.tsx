@@ -125,7 +125,15 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         try {
             setIsLoading(true);
             const data = await ReservationAPI.getAll();
-            setReservations(data);
+            const formattedData = data.map(res => ({
+                ...res,
+                status: res.status ? res.status.toLowerCase() : 'pending',
+                customer: res.customerName || res.customer?.name || 'Unknown',
+                email: res.email || res.customer?.email || '',
+                phone: res.phone || res.customer?.phone || '',
+                company: res.company || res.customer?.company || ''
+            }));
+            setReservations(formattedData);
         } catch (error) {
             console.error('Failed to load reservations:', error);
         } finally {
@@ -136,6 +144,9 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
     useEffect(() => {
         loadReservations();
     }, []);
+
+    // Toast/Notification state
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info'; action?: { label: string; onClick: () => void; cancelLabel?: string; onCancel?: () => void } } | null>(null);
 
     // Removed localStorage save effect
 
@@ -289,7 +300,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
     const handleAiParse = async () => {
         if (!aiKey) {
-            alert('Please enter a Gemini API Key to use this feature.');
+            setNotification({ message: 'Please enter a Gemini API Key to use this feature.', type: 'error' });
             return;
         }
         if (!aiPrompt) return;
@@ -336,7 +347,7 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
             setAiTaskStatus('success');
             setShowAiPanel(false); // Collapse the AI input panel to free up real estate
         } catch (error: any) {
-            alert(error.message || 'Failed to parse AI prompt');
+            setNotification({ message: error.message || 'Failed to parse AI prompt', type: 'error' });
             setAiTaskStatus('idle');
         } finally {
             setIsParsingAI(false);
@@ -510,9 +521,9 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                     });
 
                     if (previewData.isResend) {
-                        alert(`Confirmation email resent to ${previewData.customerEmail}`);
+                        setNotification({ message: `Confirmation email resent to ${previewData.customerEmail}`, type: 'success' });
                     } else {
-                        alert(`Reservation #${previewData.reservationData.confirmationNumber} updated! Confirmation email sent to ${previewData.customerEmail}`);
+                        setNotification({ message: `Reservation #${previewData.reservationData.confirmationNumber} updated! Confirmation email sent to ${previewData.customerEmail}`, type: 'success' });
                     }
                 } else {
                     // It's a brand new record for the DB
@@ -522,14 +533,14 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                         id: undefined,
                         status: updatedStatus
                     });
-                    alert(`Reservation #${savedReservation.confirmationNumber} created! Confirmation email sent to ${previewData.customerEmail}`);
+                    setNotification({ message: `Reservation #${savedReservation.confirmationNumber} created! Confirmation email sent to ${previewData.customerEmail}`, type: 'success' });
                 }
 
                 await loadReservations(); // Reload from server
                 setShowModal(false);
                 resetForm();
             } catch (error: any) {
-                alert(`Error saving reservation: ${error.message}`);
+                setNotification({ message: `Error saving reservation: ${error.message}`, type: 'error' });
                 return;
             }
         }
@@ -541,8 +552,9 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
         try {
             await ReservationAPI.update(id, { status });
             await loadReservations();
+            setNotification({ message: `Status updated to ${status}`, type: 'success' });
         } catch (error: any) {
-            alert(`Error updating status: ${error.message}`);
+            setNotification({ message: `Error updating status: ${error.message}`, type: 'error' });
         }
     };
 
@@ -604,6 +616,45 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
 
     return (
         <div className="reservations fade-in">
+            {notification && (
+                <div className="modal-overlay" style={{ zIndex: 11000 }}>
+                    <div className="glass-card" style={{ padding: '2rem', maxWidth: '400px', margin: 'auto', textAlign: 'center' }}>
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '50%', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: notification.type === 'error' ? 'rgba(255, 50, 50, 0.1)' : notification.type === 'success' ? 'rgba(50, 255, 100, 0.1)' : 'rgba(100, 150, 255, 0.1)',
+                            color: notification.type === 'error' ? 'var(--color-danger)' : notification.type === 'success' ? 'var(--color-success)' : 'var(--color-primary)'
+                        }}>
+                            {notification.type === 'error' ? '✕' : notification.type === 'success' ? '✓' : 'ℹ'}
+                        </div>
+                        <h3 style={{ marginBottom: '1rem', color: 'var(--color-text-primary)' }}>
+                            {notification.type === 'error' ? 'Error' : notification.type === 'success' ? 'Success' : 'Notice'}
+                        </h3>
+                        <p style={{ marginBottom: '1.5rem', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                            {notification.message}
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            {notification.action?.cancelLabel && (
+                                <button className="btn btn-outline"
+                                    onClick={() => {
+                                        if (notification.action?.onCancel) notification.action.onCancel();
+                                        setNotification(null);
+                                    }}>
+                                    {notification.action.cancelLabel}
+                                </button>
+                            )}
+                            <button className={`btn ${notification.type === 'error' ? 'btn-outline' : 'btn-primary'}`}
+                                style={notification.type === 'error' ? { borderColor: 'var(--color-danger)', color: 'var(--color-danger)' } : {}}
+                                onClick={() => {
+                                    if (notification.action?.onClick) notification.action.onClick();
+                                    setNotification(null);
+                                }}>
+                                {notification.action?.label || 'OK'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showCloseConfirmation && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
                     <div className="glass-card" style={{ padding: '2rem', maxWidth: '500px', margin: 'auto' }}>
