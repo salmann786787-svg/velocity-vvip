@@ -21,27 +21,42 @@ const TypewriterText = ({ text }: { text: string }) => {
 
     useEffect(() => {
         let i = 0;
+        let isCancelled = false;
+        let typingTimeout: any;
+        let loopTimeout: any;
+
         setDisplayedText('');
         setIsTyping(true);
-        const timer = setInterval(() => {
+
+        const typeChar = () => {
+            if (isCancelled) return;
             if (i < text.length) {
-                setDisplayedText(prev => prev + text.charAt(i));
+                setDisplayedText(text.slice(0, i + 1));
                 i++;
+                typingTimeout = setTimeout(typeChar, 30);
             } else {
                 setIsTyping(false);
-                clearInterval(timer);
-                setTimeout(() => {
+                loopTimeout = setTimeout(() => {
+                    if (isCancelled) return;
                     setDisplayedText('');
                     setIsTyping(true);
                     i = 0;
-                }, 5000); // Wait 5 seconds before looping
+                    typingTimeout = setTimeout(typeChar, 500);
+                }, 5000);
             }
-        }, 30);
-        return () => clearInterval(timer);
+        };
+
+        typingTimeout = setTimeout(typeChar, 100);
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(typingTimeout);
+            clearTimeout(loopTimeout);
+        };
     }, [text]);
 
     return (
-        <span style={{ 
+        <span style={{
             borderRight: isTyping ? '0.15em solid var(--color-primary-light)' : '0.15em solid transparent',
             animation: !isTyping ? 'blink-caret 0.75s step-end infinite' : 'none',
             whiteSpace: 'pre-wrap',
@@ -782,13 +797,25 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                     <div className="mascot-avatar" style={{ overflow: 'hidden' }}>
                                                         <div className="mascot-t-intro">T</div>
                                                         <div className="mascot-head-intro">
-                                                            <svg className="mascot-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <rect x="4" y="8" width="16" height="12" rx="4" fill="hsla(280, 100%, 70%, 0.2)" stroke="white" strokeWidth="1.5" />
-                                                                <path d="M12 8V5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                                                                <circle cx="12" cy="3" r="1.5" fill="var(--color-accent-light)" />
-                                                                <path d="M2.5 12h1.5M20 12h1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                                                                <path d="M9 13a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z" fill="white" stroke="white" strokeLinecap="round" />
-                                                                <path d="M10 16c.5.5 1.5 1 2 1s1.5-.5 2-1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                            <svg className="mascot-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M20 3 L37 12 L37 28 L20 37 L3 28 L3 12 Z" fill="rgba(15,15,20,0.95)" stroke="url(#hexGrad)" strokeWidth="1.5" />
+                                                                <defs>
+                                                                    <linearGradient id="hexGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                                                                        <stop stopColor="var(--color-primary)" />
+                                                                        <stop offset="1" stopColor="var(--color-accent)" />
+                                                                    </linearGradient>
+                                                                </defs>
+                                                                <path d="M14 16 H26 M20 16 V28" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                                                <line x1="8" y1="20" x2="32" y2="20" stroke="var(--color-primary-light)" strokeWidth="1" opacity="0.6">
+                                                                    <animate attributeName="y1" values="8;32;8" dur="2s" repeatCount="indefinite" />
+                                                                    <animate attributeName="y2" values="8;32;8" dur="2s" repeatCount="indefinite" />
+                                                                </line>
+                                                                <circle cx="28" cy="10" r="1.5" fill="var(--color-success)">
+                                                                    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite" />
+                                                                </circle>
+                                                                <circle cx="12" cy="10" r="1.5" fill="var(--color-primary-light)">
+                                                                    <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" />
+                                                                </circle>
                                                             </svg>
                                                         </div>
                                                     </div>
@@ -800,8 +827,8 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                     <div className="typewriter-text" style={{ minHeight: '40px' }}>
                                                         <TypewriterText text={
                                                             aiTaskStatus === 'parsing' ? "Hold tight! I'm reading the email and building your reservation right now... Just a few seconds!" :
-                                                            aiTaskStatus === 'success' ? "All done! I've populated the fields below. Please review them, fill in any missing details, and save your new reservation!" :
-                                                            "Just paste the client's messy email below. I'll translate it into a perfectly formatted reservation for you to review and send!"
+                                                                aiTaskStatus === 'success' ? "All done! I've populated the fields below. Please review them, fill in any missing details, and save your new reservation!" :
+                                                                    "Just paste the client's messy email below. I'll translate it into a perfectly formatted reservation for you to review and send!"
                                                         } />
                                                     </div>
                                                 </div>
