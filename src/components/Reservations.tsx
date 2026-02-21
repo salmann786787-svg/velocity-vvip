@@ -732,9 +732,15 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                 {!isEditMode && (
                                     <div className="section-panel" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, hsla(280, 100%, 70%, 0.1) 0%, hsla(230, 20%, 10%, 0.8) 100%)', borderColor: 'hsla(280, 100%, 70%, 0.3)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAiPanel ? '1.5rem' : '0' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', boxShadow: '0 0 15px rgba(180, 83, 233, 0.4)' }}>
-                                                    🤖
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                                <div className="mascot-container">
+                                                    <div className="mascot-pulse"></div>
+                                                    <div className="mascot-avatar">
+                                                        <svg className="mascot-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M12 2v2M8 4h8a4 4 0 014 4v8a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <path d="M9 10h.01M15 10h.01M8 15h8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '1.1rem', border: 'none', padding: 0 }}>
