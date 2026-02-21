@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import { ReservationAPI } from '../services/api';
 import './Dashboard.css';
 
 interface DashboardProps {
@@ -5,12 +7,65 @@ interface DashboardProps {
 }
 
 function Dashboard({ onNavigate }: DashboardProps) {
+    const [reservations, setReservations] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const resData = await ReservationAPI.getAll();
+                setReservations(resData);
+            } catch (error) {
+                console.error("Failed to load dashboard data", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    // Date computation helpers
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
+    const startOfWeek = startOfDay - now.getDay() * 24 * 60 * 60 * 1000;
+    const endOfWeek = startOfWeek + 7 * 24 * 60 * 60 * 1000 - 1;
+
+    // Derived stats
+    const tripsThisWeek = reservations.filter(res => {
+        const time = new Date(res.pickupDate).getTime();
+        return time >= startOfWeek && time <= endOfWeek;
+    }).length;
+
+    const revenueToday = reservations.filter(res => {
+        const time = new Date(res.pickupDate).getTime();
+        return time >= startOfDay && time <= endOfDay;
+    }).reduce((sum, res) => sum + (res.total || 0), 0);
+
+    const pendingCount = reservations.filter(res => res.status === 'PENDING').length;
+
+    const todaySchedule = reservations
+        .filter(res => {
+            const time = new Date(res.pickupDate).getTime();
+            return time >= startOfDay && time <= endOfDay;
+        })
+        .sort((a, b) => a.pickupTime.localeCompare(b.pickupTime))
+        .map(res => ({
+            id: res.id,
+            time: res.pickupTime,
+            customer: res.customerName || res.customer?.name || 'Unknown',
+            vehicle: res.vehicle,
+            destination: res.stops?.length > 1 ? res.stops[res.stops.length - 1].location : 'As Directed',
+            status: res.status.toLowerCase()
+        }));
+
     const stats = [
         {
             label: 'Trips This Week',
-            value: '24',
-            change: '+12%',
-            trend: 'up',
+            value: tripsThisWeek.toString(),
+            change: '+0%',
+            trend: 'neutral',
             icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" />
@@ -22,9 +77,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
         },
         {
             label: 'Fleet Availability',
-            value: '18/32',
-            change: '56%',
-            trend: 'neutral',
+            value: '5/5',
+            change: '100%',
+            trend: 'up',
             icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M5 17h-2v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0a2 2 0 1 1-4 0a2 2 0 0 1 4 0m-10 0a2 2 0 1 1-4 0a2 2 0 1 1-4 0" strokeWidth="2" />
@@ -33,9 +88,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
         },
         {
             label: 'Revenue Today',
-            value: '$12,450',
-            change: '+23%',
-            trend: 'up',
+            value: `$${revenueToday.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            change: '+0%',
+            trend: 'neutral',
             icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <line x1="12" y1="1" x2="12" y2="23" strokeWidth="2" />
@@ -45,9 +100,9 @@ function Dashboard({ onNavigate }: DashboardProps) {
         },
         {
             label: 'Pending Invoices',
-            value: '7',
-            change: '-4%',
-            trend: 'down',
+            value: pendingCount.toString(),
+            change: '-0%',
+            trend: 'neutral',
             icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <circle cx="12" cy="12" r="10" strokeWidth="2" />
@@ -57,19 +112,11 @@ function Dashboard({ onNavigate }: DashboardProps) {
         },
     ];
 
-    const todaySchedule = [
-        { id: 1, time: '09:00', customer: 'John Smith', vehicle: 'Mercedes S-Class', destination: 'Airport', status: 'confirmed' },
-        { id: 2, time: '10:30', customer: 'Sarah Johnson', vehicle: 'Cadillac Escalade', destination: 'Corporate Event', status: 'in-progress' },
-        { id: 3, time: '14:00', customer: 'Michael Brown', vehicle: 'BMW 7 Series', destination: 'City Tour', status: 'confirmed' },
-        { id: 4, time: '16:30', customer: 'Emily Davis', vehicle: 'Lincoln Navigator', destination: 'Private Booking', status: 'pending' },
-        { id: 5, time: '19:00', customer: 'Robert Wilson', vehicle: 'Mercedes Sprinter', destination: 'Special Event', status: 'confirmed' },
-    ];
-
     const fleetStatus = [
         { vehicle: 'Mercedes S-Class', plate: 'VV-001', status: 'Active', driver: 'James Miller', location: 'Downtown' },
         { vehicle: 'Cadillac Escalade', plate: 'VV-002', status: 'Active', driver: 'Maria Garcia', location: 'Airport' },
         { vehicle: 'BMW 7 Series', plate: 'VV-003', status: 'Ready', driver: '-', location: 'Main Garage' },
-        { vehicle: 'Lincoln Navigator', plate: 'VV-004', status: 'Service', driver: '-', location: 'Service Center' },
+        { vehicle: 'Lincoln Navigator', plate: 'VV-004', status: 'Ready', driver: '-', location: 'Main Garage' },
         { vehicle: 'Mercedes Sprinter', plate: 'VV-005', status: 'Ready', driver: '-', location: 'Main Garage' },
     ];
 
@@ -106,24 +153,32 @@ function Dashboard({ onNavigate }: DashboardProps) {
                         <button className="btn btn-sm btn-outline" onClick={() => onNavigate('reservations')}>View All</button>
                     </div>
                     <div className="schedule-list">
-                        {todaySchedule.map((booking) => (
-                            <div key={booking.id} className="schedule-item">
-                                <div className="schedule-time">
-                                    {booking.time}
-                                </div>
-                                <div className="schedule-details">
-                                    <p className="customer-name">{booking.customer}</p>
-                                    <p className="item-meta">{booking.vehicle} · {booking.destination}</p>
-                                </div>
-                                <span className={`badge badge-${booking.status === 'confirmed' ? 'success' :
-                                    booking.status === 'in-progress' ? 'primary' :
-                                        'warning'
-                                    }`}>
-                                    <div className="glow-point"></div>
-                                    {booking.status.toUpperCase()}
-                                </span >
-                            </div >
-                        ))}
+                        {isLoading ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.5)' }}>Loading secure connection...</div>
+                        ) : todaySchedule.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
+                                No trips scheduled for today.
+                            </div>
+                        ) : (
+                            todaySchedule.map((booking) => (
+                                <div key={booking.id} className="schedule-item">
+                                    <div className="schedule-time">
+                                        {booking.time}
+                                    </div>
+                                    <div className="schedule-details">
+                                        <p className="customer-name">{booking.customer}</p>
+                                        <p className="item-meta">{booking.vehicle} · {booking.destination}</p>
+                                    </div>
+                                    <span className={`badge badge-${booking.status === 'confirmed' ? 'success' :
+                                        booking.status === 'in-progress' ? 'primary' :
+                                            'warning'
+                                        }`}>
+                                        <div className="glow-point"></div>
+                                        {booking.status.toUpperCase()}
+                                    </span >
+                                </div >
+                            ))
+                        )}
                     </div >
                 </div >
 
