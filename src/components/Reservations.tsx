@@ -737,18 +737,22 @@ function Reservations({ initialCreateMode, onResetCreateMode }: ReservationsProp
                                                     <div className="mascot-pulse"></div>
                                                     <div className="mascot-avatar">
                                                         <svg className="mascot-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 2v2M8 4h8a4 4 0 014 4v8a4 4 0 01-4 4H8a4 4 0 01-4-4V8a4 4 0 014-4z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            <path d="M9 10h.01M15 10h.01M8 15h8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <rect x="4" y="8" width="16" height="12" rx="4" fill="hsla(280, 100%, 70%, 0.2)" stroke="white" strokeWidth="1.5" />
+                                                            <path d="M12 8V5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                            <circle cx="12" cy="3" r="1.5" fill="var(--color-accent-light)" />
+                                                            <path d="M2.5 12h1.5M20 12h1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                                                            <path d="M9 13a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z" fill="white" stroke="white" strokeLinecap="round" />
+                                                            <path d="M10 16c.5.5 1.5 1 2 1s1.5-.5 2-1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                                                         </svg>
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '1.1rem', border: 'none', padding: 0 }}>
-                                                        Meet Tee, your AI Dispatcher
+                                                <div className="chat-bubble">
+                                                    <h4 className="section-title" style={{ margin: 0, color: 'var(--color-primary-light)', fontSize: '0.8rem', border: 'none', padding: 0, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                                                        TEE (AI Dispatcher)
                                                     </h4>
-                                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
-                                                        "Just paste the client's messy email below. I'll translate it into a perfect reservation, you approve it, and we'll send it away!"
-                                                    </p>
+                                                    <div className="typewriter-text">
+                                                        "Just paste the client's messy email below. I'll translate it!"
+                                                    </div>
                                                 </div>
                                             </div>
                                             <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowAiPanel(!showAiPanel)}>
