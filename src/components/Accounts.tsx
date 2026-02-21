@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { CustomerAPI } from '../services/api';
 import './Accounts.css';
 
 interface Customer {
@@ -7,14 +8,11 @@ interface Customer {
     email: string;
     phone: string;
     company: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
+    isVIP: boolean;
     totalBookings: number;
     totalSpent: number;
-    status: 'active' | 'vip' | 'inactive';
-    createdDate: string;
+    createdAt?: string;
+    reservations?: any[];
 }
 
 function Accounts() {
@@ -28,43 +26,57 @@ function Accounts() {
         email: '',
         phone: '',
         company: '',
-        address: '',
-        city: '',
-        state: '',
-        zip: '',
     });
 
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (isEditMode && editingCustomerId) {
-            setCustomers(customers.map(c =>
-                c.id === editingCustomerId
-                    ? { ...c, ...formData }
-                    : c
-            ));
-        } else {
-            const newCustomer: Customer = {
-                id: customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1,
-                name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                company: formData.company,
-                address: formData.address,
-                city: formData.city,
-                state: formData.state,
-                zip: formData.zip,
-                totalBookings: 0,
-                totalSpent: 0,
-                status: 'active',
-                createdDate: new Date().toISOString().split('T')[0]
-            };
-            setCustomers([newCustomer, ...customers]);
+    const loadCustomers = async () => {
+        try {
+            setIsLoading(true);
+            const data = await CustomerAPI.getAll();
+            // Map API response: totalBookings from reservations array, totalSpent from reservations totals
+            const mapped: Customer[] = data.map((c: any) => ({
+                ...c,
+                totalBookings: c.reservations?.length ?? 0,
+                totalSpent: c.reservations?.reduce((sum: number, r: any) => sum + (r.total ?? 0), 0) ?? 0,
+            }));
+            setCustomers(mapped);
+        } catch (err) {
+            console.error('Failed to load customers:', err);
+        } finally {
+            setIsLoading(false);
         }
+    };
 
-        resetForm();
+    useEffect(() => { loadCustomers(); }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (isEditMode && editingCustomerId) {
+                await CustomerAPI.update(editingCustomerId, {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    company: formData.company || null,
+                });
+                setNotification({ message: 'Customer updated successfully', type: 'success' });
+            } else {
+                await CustomerAPI.create({
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    company: formData.company || null,
+                });
+                setNotification({ message: 'Customer added successfully', type: 'success' });
+            }
+            await loadCustomers();
+            resetForm();
+        } catch (err: any) {
+            setNotification({ message: err.message || 'Failed to save customer', type: 'error' });
+        }
     };
 
     const resetForm = () => {
@@ -76,10 +88,6 @@ function Accounts() {
             email: '',
             phone: '',
             company: '',
-            address: '',
-            city: '',
-            state: '',
-            zip: '',
         });
     };
 
@@ -90,13 +98,20 @@ function Accounts() {
             name: customer.name,
             email: customer.email,
             phone: customer.phone,
-            company: customer.company,
-            address: customer.address,
-            city: customer.city,
-            state: customer.state,
-            zip: customer.zip,
+            company: customer.company || '',
         });
         setShowModal(true);
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm('Delete this customer? This cannot be undone.')) return;
+        try {
+            await CustomerAPI.delete(id);
+            await loadCustomers();
+            setNotification({ message: 'Customer deleted', type: 'success' });
+        } catch (err: any) {
+            setNotification({ message: err.message || 'Failed to delete customer', type: 'error' });
+        }
     };
 
     const handleView = (customer: Customer) => {
@@ -131,11 +146,11 @@ function Accounts() {
             <div className="accounts-stats">
                 <div className="stat-card glass-card summary vip">
                     <p className="stat-label">VIP Customers</p>
-                    <h4 className="stat-value title-gradient">{customers.filter(c => c.status === 'vip').length}</h4>
+                    <h4 className="stat-value title-gradient">{customers.filter(c => c.isVIP).length}</h4>
                 </div>
                 <div className="stat-card glass-card summary active">
                     <p className="stat-label">Active Customers</p>
-                    <h4 className="stat-value title-gradient">{customers.filter(c => c.status === 'active').length}</h4>
+                    <h4 className="stat-value title-gradient">{customers.filter(c => !c.isVIP).length}</h4>
                 </div>
                 <div className="stat-card glass-card summary revenue">
                     <p className="stat-label">Total Revenue</p>
@@ -173,7 +188,11 @@ function Accounts() {
                             </tr>
                         </thead>
                         <tbody>
-                            {customers.map((customer) => (
+                            {isLoading ? (
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Loading customers...</td></tr>
+                            ) : customers.length === 0 ? (
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No customers found</td></tr>
+                            ) : customers.map((customer) => (
                                 <tr key={customer.id}>
                                     <td>
                                         <div className="customer-cell">
@@ -217,16 +236,16 @@ function Accounts() {
                                     <td>
                                         <div className="status-indicator">
                                             <div className="glow-point" style={{
-                                                background: customer.status === 'vip' ? 'var(--color-accent)' :
-                                                    customer.status === 'active' ? 'var(--color-success)' : 'var(--color-text-muted)'
+                                                background: customer.isVIP ? 'var(--color-accent)' : 'var(--color-success)'
                                             }}></div>
-                                            {customer.status.toUpperCase()}
+                                            {customer.isVIP ? 'VIP' : 'ACTIVE'}
                                         </div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             <button className="btn btn-sm btn-outline" onClick={() => handleView(customer)}>View</button>
                                             <button className="btn btn-sm btn-outline" onClick={() => handleEdit(customer)}>Edit</button>
+                                            <button className="btn btn-sm btn-outline" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }} onClick={() => handleDelete(customer.id)}>Del</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -236,7 +255,21 @@ function Accounts() {
                 </div>
             </div>
 
-            {/* Integration Modal */}
+            {/* Notification toast */}
+            {notification && (
+                <div style={{
+                    position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999,
+                    padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 600, fontSize: '0.9rem',
+                    background: notification.type === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                    border: `1px solid ${notification.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}`,
+                    color: notification.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                }} onClick={() => setNotification(null)}>
+                    {notification.message}
+                </div>
+            )}
+
+            {/* Add/Edit Customer Modal */}
             {showModal && (
                 <div className="modal-overlay" onClick={resetForm}>
                     <div className="modal glass-card" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
@@ -249,94 +282,27 @@ function Accounts() {
                             <div className="grid grid-cols-2 gap-md">
                                 <div className="form-group">
                                     <label className="form-label">Full Name</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        required
-                                    />
+                                    <input type="text" className="form-input" value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Company</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.company}
-                                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                                    />
+                                    <input type="text" className="form-input" value={formData.company}
+                                        onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
                                 </div>
                             </div>
-
                             <div className="grid grid-cols-2 gap-md">
                                 <div className="form-group">
                                     <label className="form-label">Email</label>
-                                    <input
-                                        type="email"
-                                        className="form-input"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        required
-                                    />
+                                    <input type="email" className="form-input" value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Phone</label>
-                                    <input
-                                        type="tel"
-                                        className="form-input"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        required
-                                    />
+                                    <input type="tel" className="form-input" value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
                                 </div>
                             </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Address</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    required
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-md">
-                                <div className="form-group">
-                                    <label className="form-label">CITY</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.city}
-                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">STATE</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.state}
-                                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                        required
-                                        maxLength={2}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Zip Code</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.zip}
-                                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                                        required
-                                        maxLength={5}
-                                    />
-                                </div>
-                            </div>
-
                             <div className="form-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                 <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={resetForm}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -360,13 +326,13 @@ function Accounts() {
                                 <div className="profile-info">
                                     <h3 className="title-gradient">{viewingCustomer.name}</h3>
                                     <p className="text-secondary" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', letterSpacing: '0.1em' }}>
-                                        Joined: {viewingCustomer.createdDate} // ID: {viewingCustomer.id.toString().padStart(6, '0')}
+                                        Joined: {viewingCustomer.createdAt ? new Date(viewingCustomer.createdAt).toLocaleDateString() : 'N/A'} // ID: {viewingCustomer.id.toString().padStart(6, '0')}
                                     </p>
                                     <div className="status-indicator" style={{ marginTop: '1.5rem' }}>
                                         <div className="glow-point" style={{
-                                            background: viewingCustomer.status === 'vip' ? 'var(--color-accent)' : 'var(--color-success)'
+                                            background: viewingCustomer.isVIP ? 'var(--color-accent)' : 'var(--color-success)'
                                         }}></div>
-                                        {viewingCustomer.status.toUpperCase()}
+                                        {viewingCustomer.isVIP ? 'VIP' : 'ACTIVE'}
                                     </div>
                                 </div>
                             </div>
@@ -401,17 +367,14 @@ function Accounts() {
                                     </div>
                                 </div>
                                 <div className="profile-section">
-                                    <h5>Address Details</h5>
+                                    <h5>Additional Info</h5>
                                     <div className="info-item">
-                                        <span className="info-label">Address</span>
-                                        <span className="info-value">
-                                            {viewingCustomer.address}<br />
-                                            {viewingCustomer.city}, {viewingCustomer.state} {viewingCustomer.zip}
-                                        </span>
+                                        <span className="info-label">Company</span>
+                                        <span className="info-value">{viewingCustomer.company || '—'}</span>
                                     </div>
                                     <div className="info-item">
-                                        <span className="info-label">Region</span>
-                                        <span className="info-value">{viewingCustomer.state} / USA</span>
+                                        <span className="info-label">Status</span>
+                                        <span className="info-value">{viewingCustomer.isVIP ? 'VIP Client' : 'Standard'}</span>
                                     </div>
                                 </div>
                             </div>
